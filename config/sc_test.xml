@@ -1,0 +1,34 @@
+<config ip="localhost" port="5322" restartPenalty="5">
+	<modules>
+		<module name="ImportLogTCPComplete" exec="./externalImport">
+			<config checkInterval="5">
+				<tables>
+					<table name="a"/>
+					<table name="e"/>
+				</tables>
+			</config>
+		</module>
+		<module name="log_video_view" exec="./viewgen">
+			<config checkInterval="5">
+				<jobs>
+					<job inputs="a (window 1)" output="b (window 1)">
+						<query>
+							select * from b;
+						</query>
+					</job>
+					<job inputs="a (window 1), e (window 1)" output="c (window 1)">
+						<query>
+							select * from c;
+						</query>
+					</job>
+					<job inputs="c (window 1)" output="d (window 1)">
+						<query>
+							select * from d;
+						</query>
+					</job>
+				</jobs>
+			</config>
+		</module>
+	</modules>
+</config>
+

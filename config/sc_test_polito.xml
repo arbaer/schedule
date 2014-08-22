@@ -1,0 +1,937 @@
+<config ip="localhost" port="5322" restartPenalty="5">
+  <log type="file" file="dbs.log"/>
+  <modules>
+    <module name="Scheduler" exec="./scheduler">
+      <config ip="localhost" port="5323" parallelJobs="12" strategy="fifo">
+        <buffman strategy="view" slots="1000" tableSpaceDir="/mnt/raid10/dbstream/dbs_buffman"/>
+        <dbs dbname="dbstream" user="dbstream" port="5432" host="localhost" password="dbs!rocks"/>
+      </config>
+    </module>
+    <!--module name="Retention" exec="./retention">
+<config>
+	<dbs dbname="dbstream" user="dbstream" port="5432" host="localhost" password="dbs!rocks" />
+	<scheduler ip="localhost" port="5323" />
+	<tables>
+		<table name="heavy_user_min" size="5 GB" interval="60" />
+		<table name="unanswered_tcp_flows_min" size="5 GB" interval="60" />
+		<table name="service_ranking_min" size="5 GB" interval="60" />
+		<table name="user_ranking_min" size="2 GB" interval="60" />
+	</tables>
+</config>
+		</module-->
+    <module name="ImportLogTCPComplete" exec="./externalImport">
+      <config checkInterval="5">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" user="dbstream" port="5432" host="localhost" password="dbs!rocks"/>
+        <tables>
+          <table ioTime="696" name="log_tcp_complete"/>
+          <table ioTime="510" name="log_tcp_complete_pdf"/>
+        </tables>
+      </config>
+    </module>
+    <module name="View_perf" exec="./viewgen">
+<config partitionSchema="view0">
+	<scheduler ip="localhost" port="5323" />
+	<dbs dbname="dbstream" user="dbstream" port="5432" host="localhost" password="dbs!rocks" />
+	<jobs>
+		<job description="Flow counts per different organization"
+			inputs="log_tcp_complete_pdf (window 60 primary)"
+			output="perf_onehour_pdf (window 3600)"
+			schema="serial_time int4, dst_ip inet"
+			priority="1"
+			startTime="1336946400">
+			<query>select __STARTTS, dst_ip from __IN1 group by 1,2</query>
+		</job>
+		<job description="Flow counts per different organization"
+			inputs="log_tcp_complete_pdf (window 60 primary)"
+			output="perf_onehour_incr_pdf (window 3600)"
+			schema="serial_time int4, last_active int4, dst_ip inet"
+			priority="1"
+			startTime="1336942800">
+			<query><![CDATA[
+			select __STARTTS, max(last_active), dst_ip from (select serial_time-serial_time%60 as last_active, dst_ip from __IN0 group by 1,2 union all select last_active, dst_ip from __IN1 where last_active >= __STARTTS-(60*60) group by 1,2) t group by 1,3
+			]]>
+			</query>
+		</job>
+		<job description="Flow counts per different organization"
+			inputs="log_tcp_complete_pdf (window 60 primary)"
+			output="perf_halfhour_pdf (window 3600)"
+			schema="serial_time int4, dst_ip inet"
+			priority="1"
+			startTime="1336946400">
+			<query>select __STARTTS, dst_ip from __IN1 group by 1,2</query>
+		</job>
+		<job description="Flow counts per different organization"
+			inputs="log_tcp_complete_pdf (window 60 primary)"
+			output="perf_halfhour_incr_pdf (window 3600)"
+			schema="serial_time int4, last_active int4, dst_ip inet"
+			priority="1"
+			startTime="1336944600">
+			<query><![CDATA[
+			select __STARTTS, max(last_active), dst_ip from (select serial_time-serial_time%60 as last_active, dst_ip from __IN0 group by 1,2 union all select last_active, dst_ip from __IN1 where last_active >= __STARTTS-(30*60) group by 1,2) t group by 1,3
+			]]>
+			</query>
+		</job>
+		<job description="Flow counts per different organization"
+			inputs="log_tcp_complete_pdf (window 60 primary)"
+			output="perf_10min_pdf (window 3600)"
+			schema="serial_time int4, dst_ip inet"
+			priority="1"
+			startTime="1336946400">
+			<query>select __STARTTS, dst_ip from __IN1 group by 1,2</query>
+		</job>
+		<job description="Flow counts per different organization"
+			inputs="log_tcp_complete_pdf (window 60 primary)"
+			output="perf_10min_incr_pdf (window 3600)"
+			schema="serial_time int4, last_active int4, dst_ip inet"
+			priority="1"
+			startTime="1336946400">
+			<query><![CDATA[
+			select __STARTTS, max(last_active), dst_ip from (select serial_time-serial_time%60 as last_active, dst_ip from __IN0 group by 1,2 union all select last_active, dst_ip from __IN1 where last_active >= __STARTTS-(10*60) group by 1,2) t group by 1,3
+			]]>
+			</query>
+		</job>
+	</jobs>
+</config>
+		</module>
+
+    <module name="View_PDF" exec="./viewgen">
+<config partitionSchema="view0">
+	<scheduler ip="localhost" port="5323" />
+	<dbs dbname="dbstream" user="dbstream" port="5432" host="localhost" password="dbs!rocks" />
+	<jobs>
+          <job description="conn counts serial_time or PDF" 
+		  	inputs="log_tcp_complete_pdf (window 600 primary)" 
+			output="count_rows_per_min_pdf (window 3600)" 
+			schema="serial_time int4, count int4" 
+			priority="1" 
+			startTime="1336603200">
+            <query>select serial_time-(serial_time%60), count(*) from __IN0 group by 1</query>
+          </job>
+          <job ioTime="53" description="Preprocessing layer to calculate different CDFs by organisation name or iprange extracted from the Maxmind database" 
+		inputs="log_tcp_complete_pdf (window 600 primary)" 
+		output="org_nonp2p_cdf_layer_pdf (window 3600)" 
+		schema="serial_time int4, dst_ip inet , org_name text , iprange ip4r , src_rtt_min double precision , src_rtt_avg double precision , src_rtt_max double precision , dst_unique_bytes bigint , src_unique_bytes bigint , dst_ttl_min smallint , dst_ttl_max smallint , src_ttl_min smallint , src_ttl_max smallint" 
+		priority="1" 
+		startTime="1336946400">
+            <query>
+
+select serial_time-serial_time%60, dst_ip, name, ip4range, src_rtt_min, src_rtt_avg, src_rtt_max, dst_unique_bytes, src_unique_bytes, dst_ttl_min, dst_ttl_max, src_ttl_min, src_ttl_max 
+
+	from __IN0 join geoip_org_ip4r on (dst_ip::ip4 &lt;&lt;= ip4range) 
+	where  p2p_type = 0 and (conn_type &amp; 131072) = 0 and (conn_type &amp; 16384) = 0
+
+		</query>
+          </job>
+		<job description="Flow counts per different organization"
+			inputs="org_nonp2p_cdf_layer_pdf (window 600 primary)"
+			output="org_nonp2p_flow_cnt_pdf (window 3600)"
+			schema="serial_time int4, flow_cnt int4, org_name text"
+			priority="1"
+			startTime="1336946400">
+			<query>select serial_time, count(*), org_name from __IN0 group by 1,3 order by 2 desc</query>
+		</job>
+		<job description="Flow counts per different organization"
+			inputs="org_nonp2p_cdf_layer_pdf (window 600 primary)"
+			output="org_nonp2p_dst_unique_bytes_pdf (window 3600)"
+			schema="serial_time int4, percentiles int8[], org_name text"
+			priority="1"
+			startTime="1336946400"
+			index="org_name">
+			<query>select serial_time, quantile(dst_unique_bytes, ARRAY[0.05, 0.25, 0.5, 0.75, 0.95]) percentiles, org_name from __IN0 group by 1,3 order by 2 desc</query>
+		</job>
+		<job description="Flow counts per different organization"
+			inputs="org_nonp2p_cdf_layer_pdf (window 600 primary)"
+			output="org_nonp2p_src_unique_bytes_pdf (window 3600)"
+			schema="serial_time int4, percentiles int8[], org_name text"
+			priority="1"
+			startTime="1336946400"
+			index="org_name">
+			<query>select serial_time, quantile(src_unique_bytes, ARRAY[0.05, 0.25, 0.5, 0.75, 0.95]) percentiles, org_name from __IN0 group by 1,3 order by 2 desc</query>
+		</job>
+		<job description="Flow counts per different organization"
+			inputs="org_nonp2p_cdf_layer_pdf (window 600 primary)"
+			output="org_nonp2p_rtt_min_pdf (window 3600)"
+			schema="serial_time int4, percentiles int4[], org_name text"
+			priority="1"
+			startTime="1336946400"
+			index="org_name">
+			<query>select serial_time, quantile(src_rtt_min, ARRAY[0.05, 0.25, 0.5, 0.75, 0.95]) percentiles, org_name from __IN0 group by 1,3 order by 2 desc</query>
+		</job>
+		<job description="Flow counts per different organization"
+			inputs="org_nonp2p_cdf_layer_pdf (window 600 primary)"
+			output="org_nonp2p_rtt_min_dst_ip_pdf (window 3600)"
+			schema="serial_time int4, percentiles int4[], dst_ip inet, org_name text"
+			priority="1"
+			startTime="1336946400"
+			index="org_name, dst_ip">
+			<query>select serial_time, quantile(src_rtt_min, ARRAY[0.05, 0.25, 0.5, 0.75, 0.95]) percentiles, dst_ip, org_name from __IN0 group by 1,3,4 order by 2 desc</query>
+		</job>
+	</jobs>
+</config>
+		</module>
+    <module name="ViewGeneration_counts" exec="./viewgen">
+<config partitionSchema="view0">
+	<scheduler ip="localhost" port="5323" />
+	<dbs dbname="dbstream" user="dbstream" port="5432" host="localhost" password="dbs!rocks" />
+	<jobs>
+          <job description="conn counts serial_time" inputs="log_tcp_complete (window 600 primary)" output="count_rows_per_min (window 3600)" schema="serial_time int4, count int4" priority="1" startTime="1336773600">
+            <query>select serial_time-(serial_time%60), count(*) from __IN0 group by 1</query>
+          </job>
+          <job description="conn counts first_time_abs" inputs="log_tcp_complete (window 600 primary)" output="count_rows_per_min_start_time (window 3600)" schema="serial_time int4, first_time_abs int4, count int4" priority="1" startTime="1336775400">
+            <query>select serial_time-(serial_time%60), round(first_time_abs/1000)-(round(first_time_abs/1000)::int4%60), count(*) from __IN0 group by 1,2</query>
+          </job>
+          <job description="conn counts end time" inputs="log_tcp_complete (window 600 primary)" output="count_rows_per_min_end_time (window 3600)" schema="serial_time int4, end_time int4, count int4" priority="1" startTime="1336775400">
+            <query>select serial_time-(serial_time%60), round((first_time_abs+duration)/1000)-(round((first_time_abs+duration)/1000)::int4%60), count(*) from __IN0 group by 1,2</query>
+          </job>
+	</jobs>
+</config>
+		</module>
+    <module name="View_IPOrg" exec="./viewgen">
+      <config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" user="dbstream" port="5432" host="localhost" password="dbs!rocks"/>
+        <jobs>
+          <job ioTime="8"	description="A table containing a match between the dst_ip and the maxmind database. This can be used in join queries with log_tcp_complete if org names are needed." 
+		inputs="log_tcp_complete (window 600 primary)" 
+		output="log_tcp_complete_dst_ip_org_names (window 3600)" 
+		schema="serial_time int4, dst_ip inet,  ip4range ip4r, org_name text" 
+		priority="1" 
+		startTime="1336775400">
+		<query><![CDATA[
+with t as (select dst_ip from __IN0 group by 1) select __STARTTS, dst_ip, b.ip4range, b.name from t join geoip_org_ip4r b on (dst_ip::ip4 <<= ip4range)
+]]>
+		</query>
+          </job>
+          <job description="calculate the number of flows and the total up and downloaded bytes for all flows ordered by the serial_time" inputs="log_tcp_complete (window 600 primary)" output="org_stats (window 3600)" schema="serial_time int4, org_name text, flow_cnt int4, bytes_up int8, bytes_down int8" priority="1" startTime="1336775400">
+            <query>select serial_time-(serial_time%60) serial_time, name, count(*) as flow_cnt, sum(src_data_bytes) as bytes_up, sum(src_data_bytes) as bytes_down from __IN0, geoip_org_ip4r where dst_ip::ip4 &lt;&lt;= ip4range group by 1,2</query>
+          </job>
+          <job description="calculate the number of flows and the total up and downloaded bytes for all flows ordered by the serial_time" inputs="log_tcp_complete (window 600 primary)" output="org_name_stats_p2p (window 3600)" schema="serial_time int4, org_name text, is_p2p boolean, flow_cnt int4, bytes_up int8, bytes_down int8" priority="1" startTime="1336777200">
+            <query>select serial_time-(serial_time%60) serial_time, name, not(p2p_type = 0 and (conn_type &amp; 131072) = 0 and (conn_type &amp; 16384) = 0), count(*) as flow_cnt, sum(src_unique_bytes) as bytes_up, sum(dst_unique_bytes) as bytes_down from __IN0, geoip_org_ip4r where dst_ip::ip4 &lt;&lt;= ip4range group by 1,2,3</query>
+          </job>
+          <job description="stats" inputs="log_tcp_complete (window 600 primary)" output="byte_flow_stats (window 3600)" schema="serial_time int4, rtt_min_ms int4, bytes_down_kb int8, bytes_up_kb int8, count int4, name text" priority="1" startTime="1336775400">
+            <query>select __STARTTS, round(src_rtt_min)::int4, round(dst_unique_bytes/1024)::int4 as bytes_down_kb, round(src_unique_bytes/1024)::int4 as bytes_up_kb, count(*), name from __IN0, top_non_p2p_orgs where dst_ip::ip4 &lt;&lt;= ip4range and src_rtt_count &gt;= 3 group by 1,2,3,4,6</query>
+          </job>
+          <job ioTime="72" description="Preprocessing layer to calculate different CDFs by organisation name or iprange extracted from the Maxmind database" 
+		inputs="log_tcp_complete (window 600 primary)" 
+		output="org_nonp2p_cdf_layer (window 3600)" 
+		schema="serial_time int4, dst_ip inet , org_name text , iprange ip4r , src_rtt_min double precision , src_rtt_avg double precision , src_rtt_max double precision , dst_unique_bytes bigint , src_unique_bytes bigint , dst_ttl_min smallint , dst_ttl_max smallint , src_ttl_min smallint , src_ttl_max smallint" 
+		priority="1" 
+		startTime="1336775400">
+            <query>
+
+select serial_time-serial_time%60, dst_ip, name, ip4range, src_rtt_min, src_rtt_avg, src_rtt_max, dst_unique_bytes, src_unique_bytes, dst_ttl_min, dst_ttl_max, src_ttl_min, src_ttl_max 
+
+	from __IN0 join geoip_org_ip4r on (dst_ip::ip4 &lt;&lt;= ip4range) 
+	where  p2p_type = 0 and (conn_type &amp; 131072) = 0 and (conn_type &amp; 16384) = 0
+
+		</query>
+          </job>
+          <job ioTime="4" description="Flows for fqdn_dns names which are hosted by 'akamai tec' and 'akamai tec itegate' in the last 2 hours" 
+		inputs="log_tcp_complete (window 600 primary), test_aka_fqdn_flows_tx_rx (window 7200 delay 600)" 
+		output="flows_by_two_akas (window 600)" 
+		schema="serial_time int4, src_ip inet, dst_ip inet, src_rtt_min int4, fqdn_dns text" 
+		priority="1" 
+		startTime="1336775400">
+            <query>
+with t as (select fqdn_dns, org_name from __IN1 where (org_name='akamai technologies' or org_name='akamai technologies itgate') group by 1,2), 
+	u as (select fqdn_dns, count(*) from t group by 1 having count(*) = 2) 
+select serial_time, src_ip, dst_ip, src_rtt_min, fqdn_dns from __IN0 a where exists (select 1 from u where u.fqdn_dns=a.fqdn_dns)
+		</query>
+          </job>
+          <job description="Flow stats for fqdn_dns names which are hosted by 'akamai tec' and 'akamai tec itegate' in the last 2 hours" 
+		inputs="flows_by_two_akas (window 600 primary), log_tcp_complete_dst_ip_org_names (window 600)" 
+		output="stats_flows_by_two_akas (window 3600)" 
+		schema="serial_time int4, flow_cnt int4, percentiles float8[], org_name text" 
+		priority="1" 
+		startTime="1336775400">
+            <query>
+select a.serial_time-a.serial_time%600, count(*), quantile(src_rtt_min, ARRAY[0.05, 0.25, 0.5, 0.75, 0.95]) percentiles, org_name from __IN0 a join __IN1 using (dst_ip) group by 1,4
+		</query>
+          </job>
+          <job description="Akamai analysis 15min aggregation" 
+		inputs="org_nonp2p_cdf_layer (window 3600 primary)" 
+		output="akamai_rtt_min_flow_cnt_15min (window 3600)" 
+		schema="serial_time int4, org_name text, percentiles double precision[], flow_cnt int4" priority="1" startTime="1336777200">
+            <query>select serial_time-serial_time%900, org_name, quantile(src_rtt_min, ARRAY[0.05, 0.25, 0.5, 0.75, 0.95]) percentiles, count(*) as flow_cnt from __IN0 where org_name like 'Akamai%' group by 1,2</query>
+          </job>
+          <job description="Akamai analysis 15min aggregation" 
+		inputs="org_nonp2p_cdf_layer_pdf (window 3600 primary)" 
+		output="akamai_rtt_min_flow_cnt_15min_pdf (window 3600)" 
+		schema="serial_time int4, org_name text, percentiles double precision[], flow_cnt int4" priority="1" startTime="1336777200">
+            <query>select serial_time-serial_time%900, org_name, quantile(src_rtt_min, ARRAY[0.05, 0.25, 0.5, 0.75, 0.95]) percentiles, count(*) as flow_cnt from __IN0 where org_name like 'Akamai%' group by 1,2</query>
+          </job>
+          <job description="donmains served by akamai technologies and akamai technologies @ ITGate" 
+		inputs="log_tcp_complete (window 600 primary), log_tcp_complete_dst_ip_org_names (window 600)" 
+		output="akamai_service_stats (window 600)" 
+		schema="serial_time int4, service_name text, org_name text, flow_cnt int4" 
+		priority="1" 
+		startTime="1336777200">
+            <query>
+select a.serial_time-a.serial_time%60, domain_lvl2(fqdn_dns,2), org_name, count(*) 
+	from __IN0 a join __IN1 using (dst_ip) 
+	where org_name like 'Akamai Technologies%' 
+	group by 1,2,3
+	</query>
+          </job>
+          <job description="Flow counts per different organization" 
+		inputs="org_nonp2p_cdf_layer (window 3600 primary)" 
+		output="org_nonp2p_flow_cnt_a (window 3600)" 
+		schema="serial_time int4, flow_cnt int4, org_name text" 
+		priority="1" 
+		startTime="1336777200">
+            <query>select serial_time, count(*), org_name from __IN0 group by 1,3 order by 2 desc</query>
+          </job>
+          <job description="Preprocessing layer to calculate different CDFs by organisation name or iprange extracted from the Maxmind database"
+			inputs="org_nonp2p_cdf_layer (window 600 primary)"
+			output="org_nonp2p_src_rtt_min_percentiles (window 3600)"
+			schema="serial_time int4, org_name text, percentiles double precision[]"
+			query="select serial_time, org_name, quantile(src_rtt_min, ARRAY[0.05, 0.25, 0.5, 0.75, 0.95]) percentiles from __IN0 group by 1,2"
+			priority="1"
+			startTime="1336775400"
+			/>
+		<job description="Percentiles per org for number of bytes"
+			inputs="org_nonp2p_cdf_layer (window 600)"
+			output="org_nonp2p_dst_unique_bytes_percentiles (window 3600)"
+			schema="serial_time int4, org_name text, percentiles int8[]"
+			priority="1"
+			startTime="1336775400">
+			<query>select serial_time, org_name, quantile(dst_unique_bytes, ARRAY[0.05, 0.25, 0.5, 0.75, 0.95]) from __IN0 group by 1,2 having count(*) &gt; 5</query>
+		</job>
+		<job description="Flow counts per different organization"
+			inputs="org_nonp2p_cdf_layer (window 600 primary)"
+			output="org_nonp2p_flow_cnt (window 3600)"
+			schema="serial_time int4, flow_cnt int4, org_name text"
+			priority="1"
+			startTime="1336775400">
+			<query>select serial_time, count(*), org_name from __IN0 group by 1,3 order by 2 desc</query>
+		</job>
+		<!-- Ignacio Query, cosine in time -->
+        <job description="Akamai Statistic Table, for Marco picture in time. The idea is then to compute de correlations between de variables."
+			inputs="log_tcp_complete (window 900 primary), log_tcp_complete_dst_ip_org_names (window 900)"
+			output="aka_avg_stats (window 3600)"
+			schema="serial_time int4, org_name text, flow_cnt bigint, c2s_bytes bigint, s2c_bytes bigint, avg_rtt double precision, avg_rtt_weight float8, avg_hops double precision, avg_elab_time double precision, avg_first_time double precision, avg_througput double precision"
+			priority="1"
+			startTime="1336775400">
+            <query><![CDATA[
+            select 
+			    a.serial_time - a.serial_time%900 as serial_time,
+				     regexp_replace(regexp_replace(lower(org_name),'[^\s\w\d]+', '','g'),'\s+',' ','g') as org_name,
+					 count(*) as flow_cnt,
+					 sum(a.src_unique_bytes) as c2s_data,
+					 sum(a.dst_unique_bytes) as s2c_data,
+					 avg(a.src_rtt_avg) as avg_rtt,
+					 sum(a.src_rtt_avg * a.dst_rtt_count)/(sum(a.dst_rtt_count) + 0.00001) as avg_rtt_weight,
+					 avg(get_hops(a.dst_ttl_min)) as avg_hops,
+					 avg(a.first_payload_s-a.dst_first_ack) as avg_elab_time,
+					 avg(a.first_payload_s) as avg_first_p_time,
+					avg(dst_unique_bytes/duration) as avg_throughput
+			from __IN0 a join (select dst_ip, org_name from __IN1 group by 1,2) b using (dst_ip) where org_name like 'Akamai %' AND a.conn_type = 1
+			group by 1,2
+            ]]></query>
+		</job>
+        <job description="Akamai Statistic Table, for Marco picture in time. The idea is then to compute de correlations between de variables."
+			inputs="log_tcp_complete (window 600 primary), log_tcp_complete_dst_ip_org_names (window 600)"
+			output="aka_avg_stats_600s (window 3600)"
+			schema="serial_time int4, org_name text, flow_cnt bigint, c2s_bytes bigint, s2c_bytes bigint, avg_rtt double precision, avg_rtt_weight float8, avg_hops double precision, avg_elab_time double precision, avg_first_time double precision, avg_througput double precision"
+			priority="1"
+			startTime="1336775400">
+            <query><![CDATA[
+            select 
+			    a.serial_time - a.serial_time%600 as serial_time,
+				     regexp_replace(regexp_replace(lower(org_name),'[^\s\w\d]+', '','g'),'\s+',' ','g') as org_name,
+					 count(*) as flow_cnt,
+					 sum(a.src_unique_bytes) as c2s_data,
+					 sum(a.dst_unique_bytes) as s2c_data,
+					 avg(a.src_rtt_avg) as avg_rtt,
+					 sum(a.src_rtt_avg * a.dst_rtt_count)/(sum(a.dst_rtt_count) + 0.00001) as avg_rtt_weight,
+					 avg(get_hops(a.dst_ttl_min)) as avg_hops,
+					 avg(a.first_payload_s-a.dst_first_ack) as avg_elab_time,
+					 avg(a.first_payload_s) as avg_first_p_time,
+					avg(dst_unique_bytes/duration) as avg_throughput
+			from __IN0 a join (select dst_ip, org_name from __IN1 group by 1,2) b using (dst_ip) where org_name like 'Akamai %' AND a.conn_type = 1
+			group by 1,2
+            ]]></query>
+		</job>
+        <job ioTime="1" description="Akamai Statistic Table, for Marco picture in time. The idea is then to compute de correlations between de variables."
+			inputs="log_tcp_complete (window 900 primary), log_tcp_complete_dst_ip_org_names (window 900)"
+			output="aka_avg_stats_1min (window 3600)"
+			schema="serial_time int4, org_name text, flow_cnt bigint, c2s_bytes bigint, s2c_bytes bigint, avg_rtt double precision, avg_rtt_weight float8, avg_hops double precision, avg_elab_time double precision, avg_first_time double precision, avg_througput double precision"
+			priority="1"
+			startTime="1336775400">
+            <query><![CDATA[
+            select 
+			    a.serial_time - a.serial_time%60 as serial_time,
+				     regexp_replace(regexp_replace(lower(org_name),'[^\s\w\d]+', '','g'),'\s+',' ','g') as org_name,
+					 count(*) as flow_cnt,
+					 sum(a.src_unique_bytes) as c2s_data,
+					 sum(a.dst_unique_bytes) as s2c_data,
+					 avg(a.src_rtt_avg) as avg_rtt,
+					 sum(a.src_rtt_avg * a.dst_rtt_count)/(sum(a.dst_rtt_count) + 0.00001) as avg_rtt_weight,
+					 avg(get_hops(a.dst_ttl_min)) as avg_hops,
+					 avg(a.first_payload_s-a.dst_first_ack) as avg_elab_time,
+					 avg(a.first_payload_s) as avg_first_p_time,
+					avg(dst_unique_bytes/duration) as avg_throughput
+			from __IN0 a join (select dst_ip, org_name from __IN1 group by 1,2) b using (dst_ip) where org_name like 'Akamai %' AND a.conn_type = 1
+			group by 1,2
+            ]]></query>
+		</job>
+        <job description="Akamai Correlation Table, Compute the correlation in bins of 4 hours."
+			inputs="aka_avg_stats_1min (window 1800 primary)"
+			output="aka_avg_stats_corr_30min_30min (window 86400)"
+			schema="serial_time int4, org_name text, samples int4, c2s_data_corr double precision, s2c_data_corr double precision, avg_rtt_corr double precision, avg_rtt_weight_corr float8, avg_hops_corr double precision, avg_elab_time_corr double precision, avg_first_time_corr double precision, avg_throughput_corr double precision"
+			priority="1"
+			startTime="1336775400">
+            <query><![CDATA[
+            select 
+				__STARTTS,
+				a.org_name,
+				count(*) as samples, 
+				coalesce(corr(a.flow_cnt, b.c2s_bytes), 0) as c2s_data_corr,
+				coalesce(corr(a.flow_cnt, b.s2c_bytes), 0) as s2c_data_corr,
+				coalesce(corr(a.flow_cnt, b.avg_rtt), 0) as avg_rtt_corr,
+				coalesce(corr(a.flow_cnt, b.avg_rtt_weight), 0) as avg_rtt_weight_corr,
+				coalesce(corr(a.flow_cnt, b.avg_hops), 0) as avg_hops_corr,
+				coalesce(corr(a.flow_cnt, b.avg_elab_time), 0) as avg_elab_time_corr,
+				coalesce(corr(a.flow_cnt, b.avg_first_time), 0) as avg_first_p_time_corr,
+				coalesce(corr(a.flow_cnt, b.avg_througput), 0) as avg_throughput_corr
+			from __IN0 a join __IN1 b on (a.serial_time=b.serial_time+1800 and a.org_name=b.org_name) group by 1,2 
+			]]></query>
+		</job>
+        <job description="Akamai Correlation Table, Compute the correlation in bins of 4 hours."
+			inputs="aka_avg_stats (window 900 primary)"
+			output="aka_avg_stats_corr (window 14400)"
+			schema="serial_time int4, org_name text, samples int4, c2s_data_corr double precision, s2c_data_corr double precision, avg_rtt_corr double precision, avg_rtt_weight_corr float8, avg_hops_corr double precision, avg_elab_time_corr double precision, avg_first_time_corr double precision, avg_throughput_corr double precision"
+			priority="1"
+			startTime="1336775400">
+            <query><![CDATA[
+            select 
+				__STARTTS,
+				org_name,
+				count(*) as samples, 
+				coalesce(corr(flow_cnt, c2s_bytes), 0) as c2s_data_corr,
+				coalesce(corr(flow_cnt, s2c_bytes), 0) as s2c_data_corr,
+				coalesce(corr(flow_cnt, avg_rtt), 0) as avg_rtt_corr,
+				coalesce(corr(flow_cnt, avg_rtt_weight), 0) as avg_rtt_weight_corr,
+				coalesce(corr(flow_cnt, avg_hops), 0) as avg_hops_corr,
+				coalesce(corr(flow_cnt, avg_elab_time), 0) as avg_elab_time_corr,
+				coalesce(corr(flow_cnt, avg_first_time), 0) as avg_first_p_time_corr,
+				coalesce(corr(flow_cnt, avg_througput), 0) as avg_throughput_corr
+			from __IN1 group by 1,2 
+			]]></query>
+		</job>
+        <job ioTime="1" description="Akamai Temp Table, it contains for a given time, org and fqdn statistics about the number of flows, tx/rx data improved version"
+			inputs="log_tcp_complete (window 600 primary), log_tcp_complete_dst_ip_org_names (window 600)"
+			output="test_aka_fqdn_flows_tx_rx (window 3600)"
+			schema="serial_time int4, org_name text, fqdn_dns text, flow_cnt bigint, rx_bytes bigint, tx_bytes bigint"
+			priority="1"
+			startTime="1336775400">
+            <query><![CDATA[
+            select 
+                a.serial_time - a.serial_time%600, 
+                regexp_replace(regexp_replace(lower(org_name),'[^\s\w\d]+', '','g'),'\s+',' ','g') as org_name, 
+                regexp_replace(fqdn_dns, '\d{2,}', 'N','g') as fqdn_dns, 
+                count(*) as flow_cnt, 
+                sum(src_unique_bytes) as rx_bytes, 
+                sum(dst_unique_bytes) as tx_bytes 
+            from __IN0 a join __IN1 b using (dst_ip)
+                where org_name like 'Akamai %' AND fqdn_dns != '-' 
+                group by 1, 2, 3
+            ]]></query>
+		</job>
+		<!-- ATTENTION log_tcp_complete_dst_ip_org_names is not computed for pdf. -->	
+        <job description="Akamai Temp Table PDF, it contains for a given time, org and fqdn statistics about the number of flows, tx/rx data improved version"
+		    inputs="log_tcp_complete_pdf (window 600 primary), log_tcp_complete_dst_ip_org_names (window 600)"
+			output="test_aka_fqdn_flows_tx_rx_pdf (window 3600)"
+			schema="serial_time int4, org_name text, fqdn_dns text, flow_cnt bigint, rx_bytes bigint, tx_bytes bigint"
+			priority="1"
+			startTime="1336775400">
+            <query><![CDATA[
+            select 
+                a.serial_time - a.serial_time%600, 
+                regexp_replace(regexp_replace(lower(org_name),'[^\s\w\d]+', '','g'),'\s+',' ','g') as org_name, 
+                regexp_replace(fqdn_dns, '\d{2,}', 'N','g') as fqdn_dns, 
+                count(*) as flow_cnt, 
+                sum(src_unique_bytes) as rx_bytes, 
+                sum(dst_unique_bytes) as tx_bytes 
+            from __IN0 a join __IN1 b using (dst_ip)
+                where org_name like 'Akamai %' AND fqdn_dns != '-' 
+                group by 1, 2, 3
+            ]]></query>
+		</job>
+        <job description="Akamai Temp Table, it contains for a given time, org and fqdn statistics about the number of flows, tx/rx data improved version"
+			inputs="test_aka_fqdn_flows_tx_rx (window 600 primary)"
+			output="test_aka_rolling_cosine_sim (window 3600)"
+			schema="serial_time int4, org_name text, cosine_sim float8"
+			priority="1"
+			startTime="1336775400">
+            <query><![CDATA[
+            with 
+                a as (select serial_time, org_name, hstore(array_agg(fqdn_dns), array_agg('1'::text)) vec from __IN0 group by 1,2), 
+                b as (select serial_time, org_name, hstore(array_agg(fqdn_dns), array_agg('1'::text)) vec from __IN1 group by 1,2) 
+            select __STARTTS, coalesce(a.org_name,b.org_name), coalesce(aka_cos_sim_hstore(a.vec, b.vec),0) from a full outer join b using (org_name)
+            ]]></query>
+		</job>
+
+        <!--job description="Akamai Temp Table, it contains for a given time, org and fqdn statistics about the number of flows, tx/rx data"
+			inputs="log_tcp_complete (window 600 primary)"
+			output="test_aka_fqdn_flows_tx_rx (window 3600)"
+			schema="serial_time int4, org_name text, fqdn_dns text, flow_cnt bigint, rx_bytes bigint, tx_bytes bigint"
+			priority="1"
+			startTime="1336775400">
+            <query>
+            select 
+                serial_time - serial_time%600, 
+                regexp_replace(regexp_replace(lower(name),'[^\s\w\d]+', '','g'),'\s+',' ','g') as org_name, 
+                regexp_replace(fqdn_dns, '\d{2,}', 'N','g') as fqdn_dns, 
+                count(*) as flow_cnt, 
+                sum(src_unique_bytes) as rx_bytes, 
+                sum(dst_unique_bytes) as tx_bytes 
+            from __IN0,geoip_org_ip4r 
+            where dst_ip::ip4 &lt;&lt;= ip4range AND name like 'Akamai %' AND fqdn_dns != '-' 
+            group by 1, 2, 3
+            </query>
+		</job-->
+        <job description="Cosine similarity in time"
+			inputs="test_aka_fqdn_flows_tx_rx (window 7200 primary)"
+			output="test_cosine_aka_fqdn (window 7200)"
+			schema="serial_time int4, org_name_a text, serial_time_b int4, org_name_b text, cosine real"
+			priority="1"
+			startTime="1336775400">
+            <query>
+            with temp_tab as (
+                select 
+                    serial_time, 
+                    org_name, 
+                    hstore(array_agg(fqdn_dns), array_agg('1'::text)) as vector 
+                from __IN0 
+                group by 1,2
+                ) 
+            select
+                a.serial_time,
+                a.org_name,
+                b.serial_time,
+                b.org_name, 
+                aka_cos_sim_hstore(a.vector, b.vector) 
+            from temp_tab a join temp_tab b on (true)
+            </query>
+		</job>
+        <!-- Ignacio Query END -->
+          <job description="stats"
+			inputs="log_tcp_complete (window 600 primary)"
+			output="log_tcp_google (window 3600)"
+			schema="serial_time int4, src_ip inet,
+			src_port int4,
+			src_packets int8,
+			src_rst boolean,
+			src_acks int8,
+			src_pure_acks int8,
+			src_unique_bytes int8,
+			src_data_pkts int4,
+			src_data_bytes int8,
+			src_rexmit_packet int8,
+			src_rexmit_byte int8,
+			src_outseq_packet int8,
+			src_syn_count int4,
+			src_fin_count int4,
+			src_rfc1323_ws boolean,
+			src_rfc1323_ts boolean,
+			src_window_scale int4,
+			src_sack_req boolean,
+			src_sack_count int4,
+			src_mss int8,
+			src_max_seg_size int4,
+			src_min_seg_size int4,
+			src_win_max int4,
+			src_win_min int4,
+			src_win_zero_count int4,
+			src_cwinmax int8,
+			src_cwinmin int8,
+			src_initial_cwin int8,
+			src_rtt_avg double precision,
+			src_rtt_min double precision,
+			src_rtt_max double precision,
+			src_rtt_std double precision,
+			src_rtt_count int4,
+			src_ttl_min int2,
+			src_ttl_max int2,
+			src_rtx_rto int4,
+			src_rtx_fr int4,
+			src_reordering_count int4,
+			src_net_dup_count int4,
+			src_unknown_count int4,
+			src_flow_control int4,
+			src_unnec_rtx_rto int4,
+			src_unnec_rtx_fr int4,
+			src_diff_seqno int4,
+			dst_ip inet,
+			dst_port int4,
+			dst_packets int8,
+			dst_rst boolean,
+			dst_acks int8,
+			dst_pure_acks int8,
+			dst_unique_bytes int8,
+			dst_data_pkts int4,
+			dst_data_bytes int8,
+			dst_rexmit_packet int8,
+			dst_rexmit_byte int8,
+			dst_outseq_packet int8,
+			dst_syn_count int4,
+			dst_fin_count int4,
+			dst_rfc1323_ws boolean,
+			dst_rfc1323_ts boolean,
+			dst_window_scale int4,
+			dst_sack_req boolean,
+			dst_sack_count int4,
+			dst_mss int8,
+			dst_max_seg_size int4,
+			dst_min_seg_size int4,
+			dst_win_max int4,
+			dst_win_min int4,
+			dst_win_zero_count int4,
+			dst_cwinmax int8,
+			dst_cwinmin int8,
+			dst_initial_cwin int8,
+			dst_rtt_avg double precision,
+			dst_rtt_min double precision,
+			dst_rtt_max double precision,
+			dst_rtt_std double precision,
+			dst_rtt_count int4,
+			dst_ttl_min int2,
+			dst_ttl_max int2,
+			dst_rtx_rto int4,
+			dst_rtx_fr int4,
+			dst_reordering_count int4,
+			dst_net_dup_count int4,
+			dst_unknown_count int4,
+			dst_flow_control int4,
+			dst_unnec_rtx_rto int4,
+			dst_unnec_rtx_fr int4,
+			dst_diff_seqno int4,
+			duration double precision,
+			first_time double precision,
+			last_time double precision,
+			first_payload_c double precision,
+			first_payload_s double precision,
+			last_payload_c double precision,
+			last_payload_s double precision,
+			src_first_ack double precision,
+			dst_first_ack double precision,
+			first_time_abs double precision,
+			src_internal boolean,
+			dst_internal boolean,
+			conn_type int4,
+			p2p_type int2,
+			p2p_subtype int2,
+			ed2k_data int4,
+			ed2k_sig int4,
+			ed2k_c2s int4,
+			ed2k_c2c int4,
+			ed2k_msg int4,
+			http_type int2,
+			psh_separated_c2s int4,
+			psh_separated_s2c int4,
+			ssl_src_hello text,
+			ssl_dst_hello text,
+			dropbox_id text,
+			fqdn_dns text,
+			ip4range ip4r,
+			org_name text"
+			query="select __IN0.*, google_ipranges.* from __IN0, google_ipranges where dst_ip::ip4 &lt;&lt;= ip4range"
+			priority="1"
+			startTime="1336775400"
+			/>
+        </jobs>
+      </config>
+    </module>
+    <module name="ViewGeneration_counts2" exec="./viewgen">
+<config partitionSchema="view0">
+	<scheduler ip="localhost" port="5323" />
+	<dbs dbname="dbstream" user="dbstream" port="5432" host="localhost" password="dbs!rocks" />
+	<jobs>
+		<job description="Query to test buffer manager"
+			inputs="combined (window 60)"
+			output="counts_per_min_b (window 60)"
+			schema="serial_time int4, count int4"
+			query="select serial_time, count(*) from __IN0 group by 1"
+			priority="1"
+			startTime="1238425200"
+			/>
+		<job description="Query to test buffer manager using "
+			inputs="combined (window 60)"
+			output="counts_per_min_a (window 60)"
+			schema="serial_time int4, count int4"
+			query="select serial_time, count(*) from __IN0 group by 1"
+			priority="1"
+			startTime="1238425200"
+			/>
+	</jobs>
+</config>
+		</module>
+		<module name="ViewGeneration1" exec="./viewgen">
+<config partitionSchema="view0">
+	<scheduler ip="localhost" port="5323" />
+	<dbs dbname="dbstream" user="dbstream" port="5432" host="localhost" password="dbs!rocks" />
+	<jobs>
+		<job description="User Ranking (J1).
+				For every IP address, compute the number of uploaded,
+			downloaded and total exchanged (upload + download) bytes"
+			inputs="combined (window 60)"
+			output="user_ranking_min (window 60)"
+			schema="serial_time int4, ip inet, upload int4, download int4, total int4"
+			query="with t as
+				(select serial_time-(serial_time%60) as serial_time, dest_ip as ip,
+					sum(up_phy_bytes) as up, 0 as down
+					from __IN0 group by 1,2 union all
+				select serial_time-(serial_time%60), source_ip as ip, 0 as up,
+					sum(up_phy_bytes) as down from __IN0 group by 1,2)
+				select serial_time, ip, sum(up), sum(down), sum(up)+sum(down)
+				from t group by 1,2"
+			priority="1"
+			startTime="1238425200"
+			index="serial_time"
+			/>
+	</jobs>
+</config>
+		</module>
+		<module name="ViewGeneration2" exec="./viewgen" restartPenalty="5">
+<config partitionSchema="view0">
+	<scheduler ip="localhost" port="5323" />
+	<dbs dbname="dbstream" user="dbstream" port="5432" host="localhost" password="dbs!rocks" />
+	<jobs>
+		<job description="Frequent IP/Port by Heavy Users (J2) per Minute. Heavy users are defined as the top 10 IP addresses from Job J1 in terms of total exchanged bytes. This Jobs computes the top IP/Port pairs for all heavy users."
+			inputs="combined (window 60 primary), user_ranking_min (window 60)"
+			output="heavy_user_min (window 60)"
+			priortiy="1"
+			startTime="1238425200"
+			schema="serial_time int4, ip inet, cont_ip inet, cont_port int4, bytes_transfered int4"
+			query="with t as (select serial_time, ip from __IN1 order by total desc,ip limit 10) select t.serial_time, ip, case when ip=source_ip then dest_ip else source_ip end, case when ip=source_ip then mobile_port else core_port end, sum(up_phy_bytes) as bytes_transfered from __IN0 join t on (dest_ip=ip or source_ip=ip) group by 1,2,3,4"
+			index="serial_time, ip, cont_ip, cont_port"
+			/>
+	</jobs>
+</config>
+		</module>
+		<module name="ViewGeneration3" exec="./viewgen" restartPenalty="5">
+<config partitionSchema="view0">
+	<scheduler ip="localhost" port="5323" />
+	<dbs dbname="dbstream" user="dbstream" port="5432" host="localhost" password="dbs!rocks" />
+	<jobs>
+		<job description="Service Ranking (J3) per minute. For experimental purpose, the set of IP addresses is split arbitrarily into two subsets, A (servers) and B (clients). For every IP address in A, this Jobs computes the total number of connections established by IP addresses in B."
+			inputs="combined (window 60)"
+			output="service_ranking_min (window 60)"
+			priority="1"
+			startTime="1238425200"
+			schema="serial_time int4, server_ip inet, client_conn_cnt int4"
+			query="select serial_time-(serial_time%60), dest_ip, count(*) from __IN0 where exists (select 1 from user_ip_nets where source_ip &lt;&lt; netmask) group by 1,2"
+			index="serial_time, server_ip"
+			/>
+	</jobs>
+</config>
+		</module>
+		<module name="ViewGeneration4" exec="./viewgen" restartPenalty="0">
+<config partitionSchema="view0">
+	<scheduler ip="localhost" port="5323" />
+	<dbs dbname="dbstream" user="dbstream" port="5432" host="localhost" password="dbs!rocks" />
+	<jobs>
+		<job description="Unanswered TCP Flows (J4) per minute. For every IP address, this Job computes the number of unanswered TCP flows. A TCP flow is considered answered if the initial SYN packet is acknowledged by a SYN-ACK within 3 seconds."
+			inputs="combined (window 60 primary), combined (window 65)"
+			output="unanswered_tcp_flows_min (window 60)"
+			priority="1"
+			startTime="1238425200"
+			schema="serial_time int4, ip inet, count int4"
+			query="select serial_time-(serial_time%60), case when flags=2 then source_ip else dest_ip end, count(*) from __IN0 a where not exists (select 1 from __IN1 b where a.serial_time between b.serial_time and b.serial_time+3 and ((a.flags=2 and b.flags=18) or (a.flags=18 and b.flags=2)) and a.source_ip=b.dest_ip and a.dest_ip=b.source_ip and a.mobile_port=b.core_port and a.core_port=b.mobile_port) group by 1,2"
+			/>
+	</jobs>
+</config>
+		</module>
+	    <module name="Fina_view" exec="./viewgen">
+      		<config partitionSchema="view0">
+			<scheduler ip="localhost" port="5323"/>
+			<dbs dbname="dbstream" user="dbstream" port="5432" host="localhost" password="dbs!rocks"/>
+			<jobs>
+        <job description="same as job for test_aka_fqdn_flows_tx_rx but with higher granularity"
+			inputs="log_tcp_complete (window 600 primary), log_tcp_complete_dst_ip_org_names (window 600)"
+			output="test_aka_fqdn_flows_tx_rx_61s (window 3600)"
+			schema="serial_time int4, org_name text, fqdn_dns text, flow_cnt bigint, rx_bytes bigint, tx_bytes bigint"
+			priority="1"
+			startTime="1336775400">
+            <query><![CDATA[
+            select 
+                a.serial_time - a.serial_time%60, 
+                regexp_replace(regexp_replace(lower(org_name),'[^\s\w\d]+', '','g'),'\s+',' ','g') as org_name, 
+                regexp_replace(fqdn_dns, '\d{2,}', 'N','g') as fqdn_dns, 
+                count(*) as flow_cnt, 
+                sum(src_unique_bytes) as rx_bytes, 
+                sum(dst_unique_bytes) as tx_bytes 
+            from __IN0 a join __IN1 b using (dst_ip)
+                where org_name like 'Akamai %' AND fqdn_dns != '-' 
+                group by 1, 2, 3
+            ]]></query>
+		</job>
+          <job 	ioTime="6" description="same definition as log_tcp_complete_dst_ip_org_names but for pdf"
+		inputs="log_tcp_complete_pdf (window 600 primary)" 
+		output="log_tcp_complete_dst_ip_org_names_pdf (window 3600)" 
+		schema="serial_time int4, dst_ip inet,  ip4range ip4r, org_name text" 
+		priority="1" 
+		startTime="1336775400">
+		<query><![CDATA[
+with t as (select dst_ip from __IN0 group by 1) select __STARTTS, dst_ip, b.ip4range, b.name from t join geoip_org_ip4r b on (dst_ip::ip4 <<= ip4range)
+]]>
+		</query>
+          </job>
+        <job description="same as job for test_aka_fqdn_flows_tx_rx but with higher granularity"
+			inputs="log_tcp_complete_pdf (window 600 primary), log_tcp_complete_dst_ip_org_names_pdf (window 600)"
+			output="test_aka_fqdn_flows_tx_rx_60s_pdf (window 3600)"
+			schema="serial_time int4, org_name text, fqdn_dns text, flow_cnt bigint, rx_bytes bigint, tx_bytes bigint"
+			priority="1"
+			startTime="1336775400">
+            <query><![CDATA[
+            select 
+                a.serial_time - a.serial_time%60, 
+                regexp_replace(regexp_replace(lower(org_name),'[^\s\w\d]+', '','g'),'\s+',' ','g') as org_name, 
+                regexp_replace(fqdn_dns, '\d{2,}', 'N','g') as fqdn_dns, 
+                count(*) as flow_cnt, 
+                sum(src_unique_bytes) as rx_bytes, 
+                sum(dst_unique_bytes) as tx_bytes 
+            from __IN0 a join __IN1 b using (dst_ip)
+                where org_name like 'Akamai %' AND fqdn_dns != '-' 
+                group by 1, 2, 3
+            ]]></query>
+		</job>
+		<job description="same as job for test_aka_fqdn_flows_tx_rx but with higher granularity"
+			 inputs="log_tcp_complete (window 600 primary), log_tcp_complete_dst_ip_org_names (window 600)"
+			 output="test_fbgoogle_fqdn_flows_tx_rx_60s (window 3600)"
+			 schema="serial_time int4, org_name text, fqdn_dns text, dst_ip inet, http_type smallint, flow_cnt bigint, rx_bytes bigint, tx_bytes bigint"
+			 priority="1"
+			 startTime="1336775400">
+			<query>
+			<![CDATA[
+				select 
+					a.serial_time - a.serial_time%60, 
+					regexp_replace(regexp_replace(lower(org_name),'[^\s\w\d]+', '','g'),'\s+',' ','g') as org_name, 
+					regexp_replace(fqdn_dns, '\d{2,}', 'N','g') as fqdn_dns, 
+					dst_ip,
+					http_type,
+					count(*) as flow_cnt, 
+					sum(src_unique_bytes) as rx_bytes, 
+					sum(dst_unique_bytes) as tx_bytes 
+				from __IN0 a join __IN1 b using (dst_ip)
+				where lower(org_name) like '%facebook%' or
+					  lower(org_name) like '%google%' or
+					  lower(org_name) like '%youtube%' or
+					  fqdn_dns like '%google%' or
+					  fqdn_dns like '%youtube%' or
+					  http_type = 5 or
+					  http_type = 16 or
+					  http_type = 22 or
+					  http_type = 23 or
+					  http_type = 24 or
+					  http_type = 25 or
+					  http_type = 12
+				group by 1, 2, 3, 4, 5
+			]]></query>
+			</job>
+			<job description="Preprocessing layer to calculate different CDFs by organisation name or iprange extracted from the Maxmind database" 
+				 inputs="log_tcp_complete (window 600 primary)" 
+				 output="youtube_dst_ip_stats (window 3600)" 
+				 schema="serial_time int4, dst_ip inet, src_rtt_min double precision, src_rtt_avg double precision, dst_ttl_min smallint, dst_unique_bytes bigint"
+				priority="1" 
+				startTime="1336775400">
+			<query>
+			<![CDATA[
+			select serial_time,
+				   dst_ip,
+				   src_rtt_min,
+				   src_rtt_avg,
+				   dst_ttl_min,
+				   dst_unique_bytes
+			from __IN0 
+			where (http_type = 5 or
+				  http_type = 22 or
+				  http_type = 23)
+			]]>
+			</query>
+			</job>
+        <job description="extract some timing performance for akamai itgate"
+			inputs="log_tcp_complete (window 600 primary)"
+			output="akaitgate_timing (window 3600)"
+			schema="serial_time int4, first_payload_s double precision, first_payload_c double precision, elaboration double precision, dst_data_pkts integer"
+			priority="1"
+			startTime="1336775400">
+            <query><![CDATA[
+            select serial_time, first_payload_s, first_payload_c, first_payload_s - first_payload_s as elaboration, dst_data_pkts
+            from __IN0
+			where inet '213.254.17.0/24' >> dst_ip
+            ]]></query>
+		</job>
+			</jobs>
+			</config>
+		</module>
+	    <module name="Baer_view" exec="./viewgen">
+      		<config partitionSchema="view0">
+			<scheduler ip="localhost" port="5323"/>
+			<dbs dbname="dbstream" user="dbstream" port="5432" host="localhost" password="dbs!rocks"/>
+			<jobs>
+          <job 	description="Akamai performanc e related statistics about akamai flows" 
+		  		inputs="log_tcp_complete_pdf (window 3600 primary)" 
+				output="log_tcp_pdf_akamai_stats (window 86400)" 
+				schema="serial_time integer,
+				src_ip inet,
+				dst_ip inet,
+				org_name text,
+				src_packets bigint,
+				src_unique_bytes bigint,
+				src_rexmit_byte bigint,
+				src_rst integer,
+				src_syn_count integer,
+				src_rtx_rto integer,
+				src_reordering_count integer,
+				src_net_dup_count integer,
+				dst_packets bigint,
+				dst_unique_bytes bigint,
+				dst_rexmit_byte bigint,
+				dst_rst integer,
+				dst_syn_count integer,
+				dst_rtx_rto integer,
+				dst_reordering_count integer,
+				dst_net_dup_count integer"
+				priority="1"
+				startTime="1336603200">
+				<query><![CDATA[
+					select serial_time, src_ip, dst_ip, name as org_name,
+						src_packets, src_unique_bytes, src_rexmit_byte,
+							case when src_rst then 1 else 0 end src_rst, src_syn_count, src_rtx_rto, src_reordering_count, src_net_dup_count,
+						dst_packets, dst_unique_bytes, dst_rexmit_byte,
+							case when dst_rst then 1 else 0 end dst_rst, dst_syn_count, dst_rtx_rto, dst_reordering_count, dst_net_dup_count
+					from __IN0 a
+						join akamai_ipranges t on a.dst_ip::ip4 <<=ip4range
+]]></query>
+          </job>
+          <job 	description="Counts for performance test 1" 
+		  		inputs="log_tcp_complete (window 86400 primary)" 
+				output="perf_counts (window 86400)" 
+				schema="serial_time int4, count int4" 
+				priority="1" 
+				startTime="1336946400">
+            <query>select __STARTTS, count(*) from __IN0 group by 1</query>
+          </job>
+          <job 	description="Counts for performance test 1" 
+		  		inputs="log_tcp_complete (window 60 primary), log_tcp_complete_pdf (window 60)" 
+				output="perf_join_1min (window 3600)" 
+				schema="serial_time int4, dst_ip inet, avg_rtt_weight_pul float8, avg_rtt_weight_pdf float8" 
+				priority="1" 
+				startTime="1336946400">
+            <query>
+select 	__STARTTS, 
+		a.dst_ip, 
+		sum(a.src_rtt_avg * a.src_rtt_count)/(sum(a.src_rtt_count) + 0.00001) as avg_rtt_weight_pul, 
+		sum(b.src_rtt_avg * b.src_rtt_count)/(sum(b.src_rtt_count) + 0.00001) as avg_rtt_weight_pdf 
+from __IN0 a join __IN1 b on (a.dst_ip=b.dst_ip) 
+group by 1,2
+			</query>
+          </job>
+			</jobs>
+			</config>
+		</module>
+  </modules>
+</config>

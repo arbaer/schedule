@@ -1,0 +1,3595 @@
+<config ip="localhost" port="5322" restartPenalty="5">
+		<log file="dbs.log" type="stderr, file"/>
+		<modules>
+		<module exec="./externalImport" name="External_imports">
+   <config checkInterval="5">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <tables>
+    <table ioTime="1" name="call_center" />
+    <table ioTime="1" name="catalog_page" />
+    <table ioTime="224" name="catalog_returns" />
+    <table ioTime="2919" name="catalog_sales" />
+    <table ioTime="111" name="customer" />
+    <table ioTime="42" name="customer_address" />
+    <table ioTime="170" name="customer_demographics" />
+    <table ioTime="10" name="date_dim" />
+    <table ioTime="1" name="household_demographics" />
+    <table ioTime="1" name="income_band" />
+    <table ioTime="5621" name="inventory" />
+    <table ioTime="54" name="item" />
+    <table ioTime="1" name="promotion" />
+    <table ioTime="1" name="reason" />
+    <table ioTime="1" name="ship_mode" />
+    <table ioTime="1" name="store" />
+    <table ioTime="374" name="store_returns" />
+    <table ioTime="4038" name="store_sales" />
+    <table ioTime="10" name="time_dim" />
+    <table ioTime="1" name="warehouse" />
+    <table ioTime="1" name="web_page" />
+    <table ioTime="103" name="web_returns" />
+    <table ioTime="1466" name="web_sales" />
+    <table ioTime="1" name="web_site" />
+
+		<!--table ioTime="1" name="call_center"/> 
+		<table ioTime="2" name="catalog_page"/> 
+		<table ioTime="" name="catalog_returns"/> 
+		<table ioTime="" name="catalog_sales"/> 
+		<table ioTime="" name="customer"/> 
+		<table ioTime="" name="customer_address"/> 
+		<table ioTime="" name="customer_demographics"/> 
+		<table ioTime="" name="date_dim"/> 
+		<table ioTime="" name="household_demographics"/> 
+		<table ioTime="" name="income_band"/> 
+		<table ioTime="" name="inventory"/> 
+		<table ioTime="" name="item"/> 
+		<table ioTime="" name="promotion"/> 
+		<table ioTime="" name="reason"/> 
+		<table ioTime="" name="ship_mode"/> 
+		<table ioTime="" name="store"/> 
+		<table ioTime="" name="store_returns"/> 
+		<table ioTime="" name="store_sales"/> 
+		<table ioTime="" name="time_dim"/> 
+		<table ioTime="" name="warehouse"/> 
+		<table ioTime="" name="web_page"/> 
+		<table ioTime="" name="web_returns"/> 
+		<table ioTime="" name="web_sales"/> 
+		<table ioTime="" name="web_site"/--> 
+                        </tables>
+</config>
+        </module>
+		<module exec="./viewgen" name=" Query13 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" customer_address (window 1), customer_demographics (window 1), date_dim (window 1), household_demographics (window 1), store (window 1), store_sales (window 1) " ioTime="3" output=" Query13 (window 1) ">
+                        <query>
+<![CDATA[
+
+select avg(ss_quantity)
+       ,avg(ss_ext_sales_price)
+       ,avg(ss_ext_wholesale_cost)
+       ,sum(ss_ext_wholesale_cost)
+ from store_sales
+     ,store
+     ,customer_demographics
+     ,household_demographics
+     ,customer_address
+     ,date_dim
+ where s_store_sk = ss_store_sk
+ and  ss_sold_date_sk = d_date_sk and d_year = 2001
+ and((ss_hdemo_sk=hd_demo_sk
+  and cd_demo_sk = ss_cdemo_sk
+  and cd_marital_status = 'M'
+  and cd_education_status = '4 yr Degree'
+  and ss_sales_price between 100.00 and 150.00
+  and hd_dep_count = 3   
+     )or
+     (ss_hdemo_sk=hd_demo_sk
+  and cd_demo_sk = ss_cdemo_sk
+  and cd_marital_status = 'D'
+  and cd_education_status = 'Primary'
+  and ss_sales_price between 50.00 and 100.00   
+  and hd_dep_count = 1
+     ) or 
+     (ss_hdemo_sk=hd_demo_sk
+  and cd_demo_sk = ss_cdemo_sk
+  and cd_marital_status = 'U'
+  and cd_education_status = 'Advanced Degree'
+  and ss_sales_price between 150.00 and 200.00 
+  and hd_dep_count = 1  
+     ))
+ and((ss_addr_sk = ca_address_sk
+  and ca_country = 'United States'
+  and ca_state in ('KY', 'GA', 'NM')
+  and ss_net_profit between 100 and 200  
+     ) or
+     (ss_addr_sk = ca_address_sk
+  and ca_country = 'United States'
+  and ca_state in ('MT', 'OR', 'IN')
+  and ss_net_profit between 150 and 300  
+     ) or
+     (ss_addr_sk = ca_address_sk
+  and ca_country = 'United States'
+  and ca_state in ('WI', 'MO', 'WV')
+  and ss_net_profit between 50 and 250  
+     ))
+;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query15 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), customer (window 1), customer_address (window 1), date_dim (window 1) " ioTime="3" output=" Query15 (window 1) ">
+                        <query>
+<![CDATA[
+--Query 15, exec_time ~ 0.6 sec
+select  ca_zip
+       ,sum(cs_sales_price)
+ from catalog_sales
+     ,customer
+     ,customer_address
+     ,date_dim
+ where cs_bill_customer_sk = c_customer_sk
+ 	and c_current_addr_sk = ca_address_sk 
+ 	and ( substr(ca_zip,1,5) in ('85669', '86197','88274','83405','86475',
+                                   '85392', '85460', '80348', '81792')
+ 	      or ca_state in ('CA','WA','GA')
+ 	      or cs_sales_price > 500)
+ 	and cs_sold_date_sk = d_date_sk
+ 	and d_qoy = 2 and d_year = 2000
+ group by ca_zip
+ order by ca_zip
+ limit 100;
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query16 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" call_center (window 1), catalog_returns (window 1), catalog_sales (window 1), customer_address (window 1), date_dim (window 1), warehouse (window 1) " ioTime="3" output=" Query16 (window 1) ">
+                        <query>
+<![CDATA[
+--Query 16, exec_time ~ 5.6 sec
+select  
+   count(distinct cs_order_number) as "order count"
+  ,sum(cs_ext_ship_cost) as "total shipping cost"
+  ,sum(cs_net_profit) as "total net profit"
+from
+   catalog_sales cs1
+  ,date_dim
+  ,customer_address
+  ,call_center
+where
+    d_date between '1999-2-01' and 
+           (cast('1999-2-01' as date) + 60)
+and cs1.cs_ship_date_sk = d_date_sk
+and cs1.cs_ship_addr_sk = ca_address_sk
+and ca_state = 'IL'
+and cs1.cs_call_center_sk = cc_call_center_sk
+and cc_county in ('Williamson County','Williamson County','Williamson County','Williamson County',
+                  'Williamson County'
+)
+and exists (select *
+            from catalog_sales cs2
+            where cs1.cs_order_number = cs2.cs_order_number
+              and cs1.cs_warehouse_sk <> cs2.cs_warehouse_sk)
+and not exists(select *
+               from catalog_returns cr1
+               where cs1.cs_order_number = cr1.cr_order_number)
+order by count(distinct cs_order_number)
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query17 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), customer (window 1), date_dim (window 1), item (window 1), store (window 1), store_returns (window 1), store_sales (window 1) " ioTime="3" output=" Query17 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  i_item_id
+       ,i_item_desc
+       ,s_state
+       ,count(ss_quantity) as store_sales_quantitycount
+       ,avg(ss_quantity) as store_sales_quantityave
+       ,stddev_samp(ss_quantity) as store_sales_quantitystdev
+       ,stddev_samp(ss_quantity)/avg(ss_quantity) as store_sales_quantitycov
+       ,count(sr_return_quantity) as_store_returns_quantitycount
+       ,avg(sr_return_quantity) as_store_returns_quantityave
+       ,stddev_samp(sr_return_quantity) as_store_returns_quantitystdev
+       ,stddev_samp(sr_return_quantity)/avg(sr_return_quantity) as store_returns_quantitycov
+       ,count(cs_quantity) as catalog_sales_quantitycount ,avg(cs_quantity) as catalog_sales_quantityave
+       ,stddev_samp(cs_quantity)/avg(cs_quantity) as catalog_sales_quantitystdev
+       ,stddev_samp(cs_quantity)/avg(cs_quantity) as catalog_sales_quantitycov
+ from store_sales
+     ,store_returns
+     ,catalog_sales
+     ,date_dim d1
+     ,date_dim d2
+     ,date_dim d3
+     ,store
+     ,item
+ where d1.d_quarter_name = '2000Q1'
+   and d1.d_date_sk = ss_sold_date_sk
+   and i_item_sk = ss_item_sk
+   and s_store_sk = ss_store_sk
+   and ss_customer_sk = sr_customer_sk
+   and ss_item_sk = sr_item_sk
+   and ss_ticket_number = sr_ticket_number
+   and sr_returned_date_sk = d2.d_date_sk
+   and d2.d_quarter_name in ('2000Q1','2000Q2','2000Q3')
+   and sr_customer_sk = cs_bill_customer_sk
+   and sr_item_sk = cs_item_sk
+   and cs_sold_date_sk = d3.d_date_sk
+   and d3.d_quarter_name in ('2000Q1','2000Q2','2000Q3')
+ group by i_item_id
+         ,i_item_desc
+         ,s_state
+ order by i_item_id
+         ,i_item_desc
+         ,s_state
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query18 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), customer (window 1), customer_address (window 1), customer_demographics (window 1), date_dim (window 1), item (window 1) " ioTime="3" output=" Query18 (window 1) ">
+                        <query>
+<![CDATA[
+--Query 18, exec_time ~ 1.4 sec
+select  i_item_id,
+        ca_country,
+        ca_state, 
+        ca_county,
+        avg( cast(cs_quantity as numeric(12,2))) agg1,
+        avg( cast(cs_list_price as numeric(12,2))) agg2,
+        avg( cast(cs_coupon_amt as numeric(12,2))) agg3,
+        avg( cast(cs_sales_price as numeric(12,2))) agg4,
+        avg( cast(cs_net_profit as numeric(12,2))) agg5,
+        avg( cast(c_birth_year as numeric(12,2))) agg6,
+        avg( cast(cd1.cd_dep_count as numeric(12,2))) agg7
+ from catalog_sales, customer_demographics cd1, 
+      customer_demographics cd2, customer, customer_address, date_dim, item
+ where cs_sold_date_sk = d_date_sk and
+       cs_item_sk = i_item_sk and
+       cs_bill_cdemo_sk = cd1.cd_demo_sk and
+       cs_bill_customer_sk = c_customer_sk and
+       cd1.cd_gender = 'M' and 
+       cd1.cd_education_status = 'College' and
+       c_current_cdemo_sk = cd2.cd_demo_sk and
+       c_current_addr_sk = ca_address_sk and
+       c_birth_month in (9,5,12,4,1,10) and
+       d_year = 2001 and
+       ca_state in ('ND','WI','AL'
+                   ,'NC','OK','MS','TN')
+ group by i_item_id, ca_country, ca_state, ca_county
+ order by ca_country,
+        ca_state, 
+        ca_county,
+	i_item_id
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query19 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" customer (window 1), customer_address (window 1), date_dim (window 1), item (window 1), store (window 1), store_sales (window 1) " ioTime="3" output=" Query19 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  i_brand_id brand_id, i_brand brand, i_manufact_id, i_manufact,
+ 	sum(ss_ext_sales_price) ext_price
+ from date_dim, store_sales, item,customer,customer_address,store
+ where d_date_sk = ss_sold_date_sk
+   and ss_item_sk = i_item_sk
+   and i_manager_id=7
+   and d_moy=11
+   and d_year=1999
+   and ss_customer_sk = c_customer_sk 
+   and c_current_addr_sk = ca_address_sk
+   and substr(ca_zip,1,5) <> substr(s_zip,1,5) 
+   and ss_store_sk = s_store_sk 
+ group by i_brand
+      ,i_brand_id
+      ,i_manufact_id
+      ,i_manufact
+ order by ext_price desc
+         ,i_brand
+         ,i_brand_id
+         ,i_manufact_id
+         ,i_manufact
+limit 100 ;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query20 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), date_dim (window 1), item (window 1) " ioTime="3" output=" Query20 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  i_item_desc 
+       ,i_category 
+       ,i_class 
+       ,i_current_price
+       ,sum(cs_ext_sales_price) as itemrevenue 
+       ,sum(cs_ext_sales_price)*100/sum(sum(cs_ext_sales_price)) over
+           (partition by i_class) as revenueratio
+ from	catalog_sales
+     ,item 
+     ,date_dim
+ where cs_item_sk = i_item_sk 
+   and i_category in ('Jewelry', 'Sports', 'Books')
+   and cs_sold_date_sk = d_date_sk
+ and d_date between cast('2001-01-12' as date) 
+ 				and (cast('2001-01-12' as date) + 30)
+ group by i_item_id
+         ,i_item_desc 
+         ,i_category
+         ,i_class
+         ,i_current_price
+ order by i_category
+         ,i_class
+         ,i_item_id
+         ,i_item_desc
+         ,revenueratio
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query21 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" date_dim (window 1), inventory (window 1), item (window 1), warehouse (window 1) " ioTime="3" output=" Query21 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  *
+ from(select w_warehouse_name
+            ,i_item_id
+            ,sum(case when (cast(d_date as date) < cast ('1998-04-08' as date))
+	                then inv_quantity_on_hand 
+                      else 0 end) as inv_before
+            ,sum(case when (cast(d_date as date) >= cast ('1998-04-08' as date))
+                      then inv_quantity_on_hand 
+                      else 0 end) as inv_after
+   from inventory
+       ,warehouse
+       ,item
+       ,date_dim
+   where i_current_price between 0.99 and 1.49
+     and i_item_sk          = inv_item_sk
+     and inv_warehouse_sk   = w_warehouse_sk
+     and inv_date_sk    = d_date_sk
+     and d_date between (cast ('1998-04-08' as date) - 30)
+                    and (cast ('1998-04-08' as date) + 30)
+   group by w_warehouse_name, i_item_id) x
+ where (case when inv_before > 0 
+             then inv_after / inv_before 
+             else null
+             end) between 2.0/3.0 and 3.0/2.0
+ order by w_warehouse_name
+         ,i_item_id
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query22 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" date_dim (window 1), inventory (window 1), item (window 1), warehouse (window 1) " ioTime="3" output=" Query22 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  i_product_name
+             ,i_brand
+             ,i_class
+             ,i_category
+             ,avg(inv_quantity_on_hand) qoh
+       from inventory
+           ,date_dim
+           ,item
+           ,warehouse
+       where inv_date_sk=d_date_sk
+              and inv_item_sk=i_item_sk
+              and inv_warehouse_sk = w_warehouse_sk
+              and d_month_seq between 1176 and 1176 + 11
+       group by i_product_name
+                       ,i_brand
+                       ,i_class
+                       ,i_category
+order by qoh, i_product_name, i_brand, i_class, i_category
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query23 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), customer (window 1), date_dim (window 1), item (window 1), store_sales (window 1), web_sales (window 1) " ioTime="3" output=" Query23 (window 1) ">
+                        <query>
+<![CDATA[
+with frequent_ss_items as
+ (select substr(i_item_desc,1,30) itemdesc,i_item_sk item_sk,d_date solddate,count(*) cnt
+  from store_sales
+      ,date_dim
+      ,item
+  where ss_sold_date_sk = d_date_sk
+    and ss_item_sk = i_item_sk
+    and d_year in (2000,2000 + 1,2000 + 2,2000 + 3)
+  group by substr(i_item_desc,1,30),i_item_sk,d_date
+  having count(*) >4),
+ max_store_sales as
+ (select max(csales) tpcds_cmax
+  from (select c_customer_sk,sum(ss_quantity*ss_sales_price) csales
+        from store_sales
+            ,customer
+            ,date_dim 
+        where ss_customer_sk = c_customer_sk
+         and ss_sold_date_sk = d_date_sk
+         and d_year in (2000,2000+1,2000+2,2000+3)
+        group by c_customer_sk) x),
+ best_ss_customer as
+ (select c_customer_sk,sum(ss_quantity*ss_sales_price) ssales
+  from store_sales
+      ,customer
+  where ss_customer_sk = c_customer_sk
+  group by c_customer_sk
+  having sum(ss_quantity*ss_sales_price) > (50/100.0) * (select
+  *
+ from max_store_sales))
+  select  c_last_name,c_first_name,sales
+ from ((select c_last_name,c_first_name,sum(cs_quantity*cs_list_price) sales
+        from catalog_sales
+            ,customer
+            ,date_dim 
+        where d_year = 2000 
+         and d_moy = 2 
+         and cs_sold_date_sk = d_date_sk 
+         and cs_item_sk in (select item_sk from frequent_ss_items)
+         and cs_bill_customer_sk in (select c_customer_sk from best_ss_customer)
+         and cs_bill_customer_sk = c_customer_sk 
+       group by c_last_name,c_first_name)
+      union all
+      (select c_last_name,c_first_name,sum(ws_quantity*ws_list_price) sales
+       from web_sales
+           ,customer
+           ,date_dim 
+       where d_year = 2000 
+         and d_moy = 2 
+         and ws_sold_date_sk = d_date_sk 
+         and ws_item_sk in (select item_sk from frequent_ss_items)
+         and ws_bill_customer_sk in (select c_customer_sk from best_ss_customer)
+         and ws_bill_customer_sk = c_customer_sk
+       group by c_last_name,c_first_name)) y
+     order by c_last_name,c_first_name,sales
+  limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query25 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), customer (window 1), date_dim (window 1), item (window 1), store (window 1), store_returns (window 1), store_sales (window 1) " ioTime="3" output=" Query25 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  
+ i_item_id
+ ,i_item_desc
+ ,s_store_id
+ ,s_store_name
+ ,sum(ss_net_profit) as store_sales_profit
+ ,sum(sr_net_loss) as store_returns_loss
+ ,sum(cs_net_profit) as catalog_sales_profit
+ from
+ store_sales
+ ,store_returns
+ ,catalog_sales
+ ,date_dim d1
+ ,date_dim d2
+ ,date_dim d3
+ ,store
+ ,item
+ where
+ d1.d_moy = 4
+ and d1.d_year = 2001
+ and d1.d_date_sk = ss_sold_date_sk
+ and i_item_sk = ss_item_sk
+ and s_store_sk = ss_store_sk
+ and ss_customer_sk = sr_customer_sk
+ and ss_item_sk = sr_item_sk
+ and ss_ticket_number = sr_ticket_number
+ and sr_returned_date_sk = d2.d_date_sk
+ and d2.d_moy               between 4 and  10
+ and d2.d_year              = 2001
+ and sr_customer_sk = cs_bill_customer_sk
+ and sr_item_sk = cs_item_sk
+ and cs_sold_date_sk = d3.d_date_sk
+ and d3.d_moy               between 4 and  10 
+ and d3.d_year              = 2001
+ group by
+ i_item_id
+ ,i_item_desc
+ ,s_store_id
+ ,s_store_name
+ order by
+ i_item_id
+ ,i_item_desc
+ ,s_store_id
+ ,s_store_name
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query26 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), customer_demographics (window 1), date_dim (window 1), item (window 1), promotion (window 1) " ioTime="3" output=" Query26 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  i_item_id, 
+        avg(cs_quantity) agg1,
+        avg(cs_list_price) agg2,
+        avg(cs_coupon_amt) agg3,
+        avg(cs_sales_price) agg4 
+ from catalog_sales, customer_demographics, date_dim, item, promotion
+ where cs_sold_date_sk = d_date_sk and
+       cs_item_sk = i_item_sk and
+       cs_bill_cdemo_sk = cd_demo_sk and
+       cs_promo_sk = p_promo_sk and
+       cd_gender = 'F' and 
+       cd_marital_status = 'W' and
+       cd_education_status = 'Primary' and
+       (p_channel_email = 'N' or p_channel_event = 'N') and
+       d_year = 1998 
+ group by i_item_id
+ order by i_item_id
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query28 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" store_sales (window 1) " ioTime="3" output=" Query28 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  *
+from (select avg(ss_list_price) B1_LP
+            ,count(ss_list_price) B1_CNT
+            ,count(distinct ss_list_price) B1_CNTD
+      from store_sales
+      where ss_quantity between 0 and 5
+        and (ss_list_price between 11 and 11+10 
+             or ss_coupon_amt between 460 and 460+1000
+             or ss_wholesale_cost between 14 and 14+20)) B1,
+     (select avg(ss_list_price) B2_LP
+            ,count(ss_list_price) B2_CNT
+            ,count(distinct ss_list_price) B2_CNTD
+      from store_sales
+      where ss_quantity between 6 and 10
+        and (ss_list_price between 91 and 91+10
+          or ss_coupon_amt between 1430 and 1430+1000
+          or ss_wholesale_cost between 32 and 32+20)) B2,
+     (select avg(ss_list_price) B3_LP
+            ,count(ss_list_price) B3_CNT
+            ,count(distinct ss_list_price) B3_CNTD
+      from store_sales
+      where ss_quantity between 11 and 15
+        and (ss_list_price between 66 and 66+10
+          or ss_coupon_amt between 920 and 920+1000
+          or ss_wholesale_cost between 4 and 4+20)) B3,
+     (select avg(ss_list_price) B4_LP
+            ,count(ss_list_price) B4_CNT
+            ,count(distinct ss_list_price) B4_CNTD
+      from store_sales
+      where ss_quantity between 16 and 20
+        and (ss_list_price between 142 and 142+10
+          or ss_coupon_amt between 3054 and 3054+1000
+          or ss_wholesale_cost between 80 and 80+20)) B4,
+     (select avg(ss_list_price) B5_LP
+            ,count(ss_list_price) B5_CNT
+            ,count(distinct ss_list_price) B5_CNTD
+      from store_sales
+      where ss_quantity between 21 and 25
+        and (ss_list_price between 135 and 135+10
+          or ss_coupon_amt between 14180 and 14180+1000
+          or ss_wholesale_cost between 38 and 38+20)) B5,
+     (select avg(ss_list_price) B6_LP
+            ,count(ss_list_price) B6_CNT
+            ,count(distinct ss_list_price) B6_CNTD
+      from store_sales
+      where ss_quantity between 26 and 30
+        and (ss_list_price between 28 and 28+10
+          or ss_coupon_amt between 2513 and 2513+1000
+          or ss_wholesale_cost between 42 and 42+20)) B6
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query29 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), customer (window 1), date_dim (window 1), item (window 1), store (window 1), store_returns (window 1), store_sales (window 1) " ioTime="3" output=" Query29 (window 1) ">
+                        <query>
+<![CDATA[
+--Query 29, exec_time ~ 0.5 sec
+select   
+     i_item_id
+    ,i_item_desc
+    ,s_store_id
+    ,s_store_name
+    ,avg(ss_quantity)        as store_sales_quantity
+    ,avg(sr_return_quantity) as store_returns_quantity
+    ,avg(cs_quantity)        as catalog_sales_quantity
+ from
+    store_sales
+   ,store_returns
+   ,catalog_sales
+   ,date_dim             d1
+   ,date_dim             d2
+   ,date_dim             d3
+   ,store
+   ,item
+ where
+     d1.d_moy               = 9 
+ and d1.d_year              = 1999
+ and d1.d_date_sk           = ss_sold_date_sk
+ and i_item_sk              = ss_item_sk
+ and s_store_sk             = ss_store_sk
+ and ss_customer_sk         = sr_customer_sk
+ and ss_item_sk             = sr_item_sk
+ and ss_ticket_number       = sr_ticket_number
+ and sr_returned_date_sk    = d2.d_date_sk
+ and d2.d_moy               between 9 and  9 + 3 
+ and d2.d_year              = 1999
+ and sr_customer_sk         = cs_bill_customer_sk
+ and sr_item_sk             = cs_item_sk
+ and cs_sold_date_sk        = d3.d_date_sk     
+ and d3.d_year              in (1999,1999+1,1999+2)
+ group by
+    i_item_id
+   ,i_item_desc
+   ,s_store_id
+   ,s_store_name
+ order by
+    i_item_id 
+   ,i_item_desc
+   ,s_store_id
+   ,s_store_name
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query2 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), date_dim (window 1), web_sales (window 1) " ioTime="3" output=" Query2 (window 1) ">
+                        <query>
+<![CDATA[
+--Query 2, exec_time~3 sec
+with wscs as
+ (select sold_date_sk
+        ,sales_price
+  from (select ws_sold_date_sk sold_date_sk
+              ,ws_ext_sales_price sales_price
+        from web_sales) x
+        union all
+       (select cs_sold_date_sk sold_date_sk
+              ,cs_ext_sales_price sales_price
+        from catalog_sales)),
+ wswscs as 
+ (select d_week_seq,
+        sum(case when (d_day_name='Sunday') then sales_price else null end) sun_sales,
+        sum(case when (d_day_name='Monday') then sales_price else null end) mon_sales,
+        sum(case when (d_day_name='Tuesday') then sales_price else  null end) tue_sales,
+        sum(case when (d_day_name='Wednesday') then sales_price else null end) wed_sales,
+        sum(case when (d_day_name='Thursday') then sales_price else null end) thu_sales,
+        sum(case when (d_day_name='Friday') then sales_price else null end) fri_sales,
+        sum(case when (d_day_name='Saturday') then sales_price else null end) sat_sales
+ from wscs
+     ,date_dim
+ where d_date_sk = sold_date_sk
+ group by d_week_seq)
+ select d_week_seq1
+       ,round(sun_sales1/sun_sales2,2)
+       ,round(mon_sales1/mon_sales2,2)
+       ,round(tue_sales1/tue_sales2,2)
+       ,round(wed_sales1/wed_sales2,2)
+       ,round(thu_sales1/thu_sales2,2)
+       ,round(fri_sales1/fri_sales2,2)
+       ,round(sat_sales1/sat_sales2,2)
+ from
+ (select wswscs.d_week_seq d_week_seq1
+        ,sun_sales sun_sales1
+        ,mon_sales mon_sales1
+        ,tue_sales tue_sales1
+        ,wed_sales wed_sales1
+        ,thu_sales thu_sales1
+        ,fri_sales fri_sales1
+        ,sat_sales sat_sales1
+  from wswscs,date_dim 
+  where date_dim.d_week_seq = wswscs.d_week_seq and
+        d_year = 2001) y,
+ (select wswscs.d_week_seq d_week_seq2
+        ,sun_sales sun_sales2
+        ,mon_sales mon_sales2
+        ,tue_sales tue_sales2
+        ,wed_sales wed_sales2
+        ,thu_sales thu_sales2
+        ,fri_sales fri_sales2
+        ,sat_sales sat_sales2
+  from wswscs
+      ,date_dim 
+  where date_dim.d_week_seq = wswscs.d_week_seq and
+        d_year = 2001+1) z
+ where d_week_seq1=d_week_seq2-53
+ order by d_week_seq1;
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query30 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" customer (window 1), customer_address (window 1), date_dim (window 1), web_returns (window 1) " ioTime="3" output=" Query30 (window 1) ">
+                        <query>
+<![CDATA[
+
+with customer_total_return as
+ (select wr_returning_customer_sk as ctr_customer_sk
+        ,ca_state as ctr_state, 
+ 	sum(wr_return_amt) as ctr_total_return
+ from web_returns
+     ,date_dim
+     ,customer_address
+ where wr_returned_date_sk = d_date_sk 
+   and d_year =2002
+   and wr_returning_addr_sk = ca_address_sk 
+ group by wr_returning_customer_sk
+         ,ca_state)
+  select  c_customer_id,c_salutation,c_first_name,c_last_name,c_preferred_cust_flag
+       ,c_birth_day,c_birth_month,c_birth_year,c_birth_country,c_login,c_email_address
+       ,c_last_review_date,ctr_total_return
+ from customer_total_return ctr1
+     ,customer_address
+     ,customer
+ where ctr1.ctr_total_return > (select avg(ctr_total_return)*1.2
+ 			  from customer_total_return ctr2 
+                  	  where ctr1.ctr_state = ctr2.ctr_state)
+       and ca_address_sk = c_current_addr_sk
+       and ca_state = 'IL'
+       and ctr1.ctr_customer_sk = c_customer_sk
+ order by c_customer_id,c_salutation,c_first_name,c_last_name,c_preferred_cust_flag
+                  ,c_birth_day,c_birth_month,c_birth_year,c_birth_country,c_login,c_email_address
+                  ,c_last_review_date,ctr_total_return
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query32 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), date_dim (window 1), item (window 1) " ioTime="3" output=" Query32 (window 1) ">
+                        <query>
+<![CDATA[
+--Query 32, exec_time ~ 0.5 sec
+select  sum(cs_ext_discount_amt)  as "excess discount amount" 
+from 
+   catalog_sales 
+   ,item 
+   ,date_dim
+where
+i_manufact_id = 977
+and i_item_sk = cs_item_sk 
+and d_date between '1998-03-18' and 
+        (cast('1998-03-18' as date) + 90)
+and d_date_sk = cs_sold_date_sk 
+and cs_ext_discount_amt  
+     > ( 
+         select 
+            1.3 * avg(cs_ext_discount_amt) 
+         from 
+            catalog_sales 
+           ,date_dim
+         where 
+              cs_item_sk = i_item_sk 
+          and d_date between '1998-03-18' and
+                  (cast('1998-03-18' as date) + 90)
+          and d_date_sk = cs_sold_date_sk 
+      ) 
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query33 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), customer_address (window 1), date_dim (window 1), item (window 1), store_sales (window 1), web_sales (window 1) " ioTime="3" output=" Query33 (window 1) ">
+                        <query>
+<![CDATA[
+
+with ss as (
+ select
+          i_manufact_id,sum(ss_ext_sales_price) total_sales
+ from
+ 	store_sales,
+ 	date_dim,
+         customer_address,
+         item
+ where
+         i_manufact_id in (select
+  i_manufact_id
+from
+ item
+where i_category in ('Books'))
+ and     ss_item_sk              = i_item_sk
+ and     ss_sold_date_sk         = d_date_sk
+ and     d_year                  = 1999
+ and     d_moy                   = 3
+ and     ss_addr_sk              = ca_address_sk
+ and     ca_gmt_offset           = -5 
+ group by i_manufact_id),
+ cs as (
+ select
+          i_manufact_id,sum(cs_ext_sales_price) total_sales
+ from
+ 	catalog_sales,
+ 	date_dim,
+         customer_address,
+         item
+ where
+         i_manufact_id               in (select
+  i_manufact_id
+from
+ item
+where i_category in ('Books'))
+ and     cs_item_sk              = i_item_sk
+ and     cs_sold_date_sk         = d_date_sk
+ and     d_year                  = 1999
+ and     d_moy                   = 3
+ and     cs_bill_addr_sk         = ca_address_sk
+ and     ca_gmt_offset           = -5 
+ group by i_manufact_id),
+ ws as (
+ select
+          i_manufact_id,sum(ws_ext_sales_price) total_sales
+ from
+ 	web_sales,
+ 	date_dim,
+         customer_address,
+         item
+ where
+         i_manufact_id               in (select
+  i_manufact_id
+from
+ item
+where i_category in ('Books'))
+ and     ws_item_sk              = i_item_sk
+ and     ws_sold_date_sk         = d_date_sk
+ and     d_year                  = 1999
+ and     d_moy                   = 3
+ and     ws_bill_addr_sk         = ca_address_sk
+ and     ca_gmt_offset           = -5
+ group by i_manufact_id)
+  select  i_manufact_id ,sum(total_sales) total_sales
+ from  (select * from ss 
+        union all
+        select * from cs 
+        union all
+        select * from ws) tmp1
+ group by i_manufact_id
+ order by total_sales
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query34 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" customer (window 1), date_dim (window 1), household_demographics (window 1), store (window 1), store_sales (window 1) " ioTime="3" output=" Query34 (window 1) ">
+                        <query>
+<![CDATA[
+
+select c_last_name
+       ,c_first_name
+       ,c_salutation
+       ,c_preferred_cust_flag
+       ,ss_ticket_number
+       ,cnt from
+   (select ss_ticket_number
+          ,ss_customer_sk
+          ,count(*) cnt
+    from store_sales,date_dim,store,household_demographics
+    where store_sales.ss_sold_date_sk = date_dim.d_date_sk
+    and store_sales.ss_store_sk = store.s_store_sk  
+    and store_sales.ss_hdemo_sk = household_demographics.hd_demo_sk
+    and (date_dim.d_dom between 1 and 3 or date_dim.d_dom between 25 and 28)
+    and (household_demographics.hd_buy_potential = '>10000' or
+         household_demographics.hd_buy_potential = 'unknown')
+    and household_demographics.hd_vehicle_count > 0
+    and (case when household_demographics.hd_vehicle_count > 0 
+	then household_demographics.hd_dep_count/ household_demographics.hd_vehicle_count 
+	else null 
+	end)  > 1.2
+    and date_dim.d_year in (1998,1998+1,1998+2)
+    and store.s_county in ('Williamson County','Williamson County','Williamson County','Williamson County',
+                           'Williamson County','Williamson County','Williamson County','Williamson County')
+    group by ss_ticket_number,ss_customer_sk) dn,customer
+    where ss_customer_sk = c_customer_sk
+      and cnt between 15 and 20
+    order by c_last_name,c_first_name,c_salutation,c_preferred_cust_flag desc;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query39 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" date_dim (window 1), inventory (window 1), item (window 1), warehouse (window 1) " ioTime="3" output=" Query39 (window 1) ">
+                        <query>
+<![CDATA[
+with inv as
+(select w_warehouse_name,w_warehouse_sk,i_item_sk,d_moy
+       ,stdev,mean, case mean when 0 then null else stdev/mean end cov
+ from(select w_warehouse_name,w_warehouse_sk,i_item_sk,d_moy
+            ,stddev_samp(inv_quantity_on_hand) stdev,avg(inv_quantity_on_hand) mean
+      from inventory
+          ,item
+          ,warehouse
+          ,date_dim
+      where inv_item_sk = i_item_sk
+        and inv_warehouse_sk = w_warehouse_sk
+        and inv_date_sk = d_date_sk
+        and d_year =2000
+      group by w_warehouse_name,w_warehouse_sk,i_item_sk,d_moy) foo
+ where case mean when 0 then 0 else stdev/mean end > 1)
+select inv1.w_warehouse_sk,inv1.i_item_sk,inv1.d_moy,inv1.mean, inv1.cov
+        ,inv2.w_warehouse_sk,inv2.i_item_sk,inv2.d_moy,inv2.mean, inv2.cov
+from inv inv1,inv inv2
+where inv1.i_item_sk = inv2.i_item_sk
+  and inv1.w_warehouse_sk =  inv2.w_warehouse_sk
+  and inv1.d_moy=1
+  and inv2.d_moy=1+1
+order by inv1.w_warehouse_sk,inv1.i_item_sk,inv1.d_moy,inv1.mean,inv1.cov
+        ,inv2.d_moy,inv2.mean, inv2.cov;
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query3 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" date_dim (window 1), item (window 1), store_sales (window 1) " ioTime="3" output=" Query3 (window 1) ">
+                        <query>
+<![CDATA[
+select  dt.d_year 
+       ,item.i_brand_id brand_id 
+       ,item.i_brand brand
+       ,sum(ss_ext_sales_price) sum_agg
+ from  date_dim dt 
+      ,store_sales
+      ,item
+ where dt.d_date_sk = store_sales.ss_sold_date_sk
+   and store_sales.ss_item_sk = item.i_item_sk
+   and item.i_manufact_id = 436
+   and dt.d_moy=12
+ group by dt.d_year
+      ,item.i_brand
+      ,item.i_brand_id
+ order by dt.d_year
+         ,sum_agg desc
+         ,brand_id
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query40 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_returns (window 1), catalog_sales (window 1), date_dim (window 1), item (window 1), warehouse (window 1) " ioTime="3" output=" Query40 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  
+   w_state
+  ,i_item_id
+  ,sum(case when (cast(d_date as date) < cast ('1998-04-08' as date)) 
+ 		then cs_sales_price - coalesce(cr_refunded_cash,0) else 0 end) as sales_before
+  ,sum(case when (cast(d_date as date) >= cast ('1998-04-08' as date)) 
+ 		then cs_sales_price - coalesce(cr_refunded_cash,0) else 0 end) as sales_after
+ from
+   catalog_sales left outer join catalog_returns on
+       (cs_order_number = cr_order_number 
+        and cs_item_sk = cr_item_sk)
+  ,warehouse 
+  ,item
+  ,date_dim
+ where
+     i_current_price between 0.99 and 1.49
+ and i_item_sk          = cs_item_sk
+ and cs_warehouse_sk    = w_warehouse_sk 
+ and cs_sold_date_sk    = d_date_sk
+ and d_date between (cast ('1998-04-08' as date) - 30)
+                and (cast ('1998-04-08' as date) + 30) 
+ group by
+    w_state,i_item_id
+ order by w_state,i_item_id
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query42 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" date_dim (window 1), item (window 1), store_sales (window 1) " ioTime="3" output=" Query42 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  dt.d_year
+ 	,item.i_category_id
+ 	,item.i_category
+ 	,sum(ss_ext_sales_price)
+ from 	date_dim dt
+ 	,store_sales
+ 	,item
+ where dt.d_date_sk = store_sales.ss_sold_date_sk
+ 	and store_sales.ss_item_sk = item.i_item_sk
+ 	and item.i_manager_id = 1  	
+ 	and dt.d_moy=12
+ 	and dt.d_year=1998
+ group by 	dt.d_year
+ 		,item.i_category_id
+ 		,item.i_category
+ order by       sum(ss_ext_sales_price) desc,dt.d_year
+ 		,item.i_category_id
+ 		,item.i_category
+limit 100 ;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query43 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" date_dim (window 1), store (window 1), store_sales (window 1) " ioTime="3" output=" Query43 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  s_store_name, s_store_id,
+        sum(case when (d_day_name='Sunday') then ss_sales_price else null end) sun_sales,
+        sum(case when (d_day_name='Monday') then ss_sales_price else null end) mon_sales,
+        sum(case when (d_day_name='Tuesday') then ss_sales_price else  null end) tue_sales,
+        sum(case when (d_day_name='Wednesday') then ss_sales_price else null end) wed_sales,
+        sum(case when (d_day_name='Thursday') then ss_sales_price else null end) thu_sales,
+        sum(case when (d_day_name='Friday') then ss_sales_price else null end) fri_sales,
+        sum(case when (d_day_name='Saturday') then ss_sales_price else null end) sat_sales
+ from date_dim, store_sales, store
+ where d_date_sk = ss_sold_date_sk and
+       s_store_sk = ss_store_sk and
+       s_gmt_offset = -5 and
+       d_year = 1998 
+ group by s_store_name, s_store_id
+ order by s_store_name, s_store_id,sun_sales,mon_sales,tue_sales,wed_sales,thu_sales,fri_sales,sat_sales
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query44 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" item (window 1), store (window 1), store_sales (window 1) " ioTime="3" output=" Query44 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  asceding.rnk, i1.i_product_name best_performing, i2.i_product_name worst_performing
+from(select *
+     from (select item_sk,rank() over (order by rank_col asc) rnk
+           from (select ss_item_sk item_sk,avg(ss_net_profit) rank_col 
+                 from store_sales ss1
+                 where ss_store_sk = 2
+                 group by ss_item_sk
+                 having avg(ss_net_profit) > 0.9*(select avg(ss_net_profit) rank_col
+                                                  from store_sales
+                                                  where ss_store_sk = 2
+                                                    and ss_hdemo_sk is null
+                                                  group by ss_store_sk))V1)V11
+     where rnk  < 11) asceding,
+    (select *
+     from (select item_sk,rank() over (order by rank_col desc) rnk
+           from (select ss_item_sk item_sk,avg(ss_net_profit) rank_col
+                 from store_sales ss1
+                 where ss_store_sk = 2
+                 group by ss_item_sk
+                 having avg(ss_net_profit) > 0.9*(select avg(ss_net_profit) rank_col
+                                                  from store_sales
+                                                  where ss_store_sk = 2
+                                                    and ss_hdemo_sk is null
+                                                  group by ss_store_sk))V2)V21
+     where rnk  < 11) descending,
+item i1,
+item i2
+where asceding.rnk = descending.rnk 
+  and i1.i_item_sk=asceding.item_sk
+  and i2.i_item_sk=descending.item_sk
+order by asceding.rnk
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query46 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" customer (window 1), customer_address (window 1), date_dim (window 1), household_demographics (window 1), store (window 1), store_sales (window 1) " ioTime="3" output=" Query46 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  c_last_name
+       ,c_first_name
+       ,ca_city
+       ,bought_city
+       ,ss_ticket_number
+       ,amt,profit 
+ from
+   (select ss_ticket_number
+          ,ss_customer_sk
+          ,ca_city bought_city
+          ,sum(ss_coupon_amt) amt
+          ,sum(ss_net_profit) profit
+    from store_sales,date_dim,store,household_demographics,customer_address 
+    where store_sales.ss_sold_date_sk = date_dim.d_date_sk
+    and store_sales.ss_store_sk = store.s_store_sk  
+    and store_sales.ss_hdemo_sk = household_demographics.hd_demo_sk
+    and store_sales.ss_addr_sk = customer_address.ca_address_sk
+    and (household_demographics.hd_dep_count = 5 or
+         household_demographics.hd_vehicle_count= 3)
+    and date_dim.d_dow in (6,0)
+    and date_dim.d_year in (1999,1999+1,1999+2) 
+    and store.s_city in ('Midway','Fairview','Fairview','Fairview','Fairview') 
+    group by ss_ticket_number,ss_customer_sk,ss_addr_sk,ca_city) dn,customer,customer_address current_addr
+    where ss_customer_sk = c_customer_sk
+      and customer.c_current_addr_sk = current_addr.ca_address_sk
+      and current_addr.ca_city <> bought_city
+  order by c_last_name
+          ,c_first_name
+          ,ca_city
+          ,bought_city
+          ,ss_ticket_number
+  limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query48 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" customer_address (window 1), customer_demographics (window 1), date_dim (window 1), store (window 1), store_sales (window 1) " ioTime="3" output=" Query48 (window 1) ">
+                        <query>
+<![CDATA[
+
+select sum (ss_quantity)
+ from store_sales, store, customer_demographics, customer_address, date_dim
+ where s_store_sk = ss_store_sk
+ and  ss_sold_date_sk = d_date_sk and d_year = 1998
+ and  
+ (
+  (
+   cd_demo_sk = ss_cdemo_sk
+   and 
+   cd_marital_status = 'M'
+   and 
+   cd_education_status = '4 yr Degree'
+   and 
+   ss_sales_price between 100.00 and 150.00  
+   )
+ or
+  (
+  cd_demo_sk = ss_cdemo_sk
+   and 
+   cd_marital_status = 'M'
+   and 
+   cd_education_status = '4 yr Degree'
+   and 
+   ss_sales_price between 50.00 and 100.00   
+  )
+ or 
+ (
+  cd_demo_sk = ss_cdemo_sk
+  and 
+   cd_marital_status = 'M'
+   and 
+   cd_education_status = '4 yr Degree'
+   and 
+   ss_sales_price between 150.00 and 200.00  
+ )
+ )
+ and
+ (
+  (
+  ss_addr_sk = ca_address_sk
+  and
+  ca_country = 'United States'
+  and
+  ca_state in ('KY', 'GA', 'NM')
+  and ss_net_profit between 0 and 2000  
+  )
+ or
+  (ss_addr_sk = ca_address_sk
+  and
+  ca_country = 'United States'
+  and
+  ca_state in ('MT', 'OR', 'IN')
+  and ss_net_profit between 150 and 3000 
+  )
+ or
+  (ss_addr_sk = ca_address_sk
+  and
+  ca_country = 'United States'
+  and
+  ca_state in ('WI', 'MO', 'WV')
+  and ss_net_profit between 50 and 25000 
+  )
+ )
+;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query49 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_returns (window 1), catalog_sales (window 1), date_dim (window 1), item (window 1), store (window 1), store_returns (window 1), store_sales (window 1), web_returns (window 1), web_sales (window 1) " ioTime="3" output=" Query49 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  
+ 'web' as channel
+ ,web.item
+ ,web.return_ratio
+ ,web.return_rank
+ ,web.currency_rank
+ from (
+ 	select 
+ 	 item
+ 	,return_ratio
+ 	,currency_ratio
+ 	,rank() over (order by return_ratio) as return_rank
+ 	,rank() over (order by currency_ratio) as currency_rank
+ 	from
+ 	(	select ws.ws_item_sk as item
+ 		,(cast(sum(coalesce(wr.wr_return_quantity,0)) as dec(15,4))/
+ 		cast(sum(coalesce(ws.ws_quantity,0)) as dec(15,4) )) as return_ratio
+ 		,(cast(sum(coalesce(wr.wr_return_amt,0)) as dec(15,4))/
+ 		cast(sum(coalesce(ws.ws_net_paid,0)) as dec(15,4) )) as currency_ratio
+ 		from 
+ 		 web_sales ws left outer join web_returns wr 
+ 			on (ws.ws_order_number = wr.wr_order_number and 
+ 			ws.ws_item_sk = wr.wr_item_sk)
+                 ,date_dim
+ 		where 
+ 			wr.wr_return_amt > 10000 
+ 			and ws.ws_net_profit > 1
+                         and ws.ws_net_paid > 0
+                         and ws.ws_quantity > 0
+                         and ws_sold_date_sk = d_date_sk
+                         and d_year = 2000
+                         and d_moy = 12
+ 		group by ws.ws_item_sk
+ 	) in_web
+ ) web
+ where 
+ (
+ web.return_rank <= 10
+ or
+ web.currency_rank <= 10
+ )
+ union
+ select 
+ 'catalog' as channel
+ ,catalog.item
+ ,catalog.return_ratio
+ ,catalog.return_rank
+ ,catalog.currency_rank
+ from (
+ 	select 
+ 	 item
+ 	,return_ratio
+ 	,currency_ratio
+ 	,rank() over (order by return_ratio) as return_rank
+ 	,rank() over (order by currency_ratio) as currency_rank
+ 	from
+ 	(	select 
+ 		cs.cs_item_sk as item
+ 		,(cast(sum(coalesce(cr.cr_return_quantity,0)) as dec(15,4))/
+ 		cast(sum(coalesce(cs.cs_quantity,0)) as dec(15,4) )) as return_ratio
+ 		,(cast(sum(coalesce(cr.cr_return_amount,0)) as dec(15,4))/
+ 		cast(sum(coalesce(cs.cs_net_paid,0)) as dec(15,4) )) as currency_ratio
+ 		from 
+ 		catalog_sales cs left outer join catalog_returns cr
+ 			on (cs.cs_order_number = cr.cr_order_number and 
+ 			cs.cs_item_sk = cr.cr_item_sk)
+                ,date_dim
+ 		where 
+ 			cr.cr_return_amount > 10000 
+ 			and cs.cs_net_profit > 1
+                         and cs.cs_net_paid > 0
+                         and cs.cs_quantity > 0
+                         and cs_sold_date_sk = d_date_sk
+                         and d_year = 2000
+                         and d_moy = 12
+                 group by cs.cs_item_sk
+ 	) in_cat
+ ) catalog
+ where 
+ (
+ catalog.return_rank <= 10
+ or
+ catalog.currency_rank <=10
+ )
+ union
+ select 
+ 'store' as channel
+ ,store.item
+ ,store.return_ratio
+ ,store.return_rank
+ ,store.currency_rank
+ from (
+ 	select 
+ 	 item
+ 	,return_ratio
+ 	,currency_ratio
+ 	,rank() over (order by return_ratio) as return_rank
+ 	,rank() over (order by currency_ratio) as currency_rank
+ 	from
+ 	(	select sts.ss_item_sk as item
+ 		,(cast(sum(coalesce(sr.sr_return_quantity,0)) as dec(15,4))/cast(sum(coalesce(sts.ss_quantity,0)) as dec(15,4) )) as return_ratio
+ 		,(cast(sum(coalesce(sr.sr_return_amt,0)) as dec(15,4))/cast(sum(coalesce(sts.ss_net_paid,0)) as dec(15,4) )) as currency_ratio
+ 		from 
+ 		store_sales sts left outer join store_returns sr
+ 			on (sts.ss_ticket_number = sr.sr_ticket_number and sts.ss_item_sk = sr.sr_item_sk)
+                ,date_dim
+ 		where 
+ 			sr.sr_return_amt > 10000 
+ 			and sts.ss_net_profit > 1
+                         and sts.ss_net_paid > 0 
+                         and sts.ss_quantity > 0
+                         and ss_sold_date_sk = d_date_sk
+                         and d_year = 2000
+                         and d_moy = 12
+ 		group by sts.ss_item_sk
+ 	) in_store
+ ) store
+ where  (
+ store.return_rank <= 10
+ or 
+ store.currency_rank <= 10
+ )
+ order by 1,4,5
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query50 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" customer (window 1), date_dim (window 1), item (window 1), store (window 1), store_returns (window 1), store_sales (window 1) " ioTime="3" output=" Query50 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  
+   s_store_name
+  ,s_company_id
+  ,s_street_number
+  ,s_street_name
+  ,s_street_type
+  ,s_suite_number
+  ,s_city
+  ,s_county
+  ,s_state
+  ,s_zip
+  ,sum(case when (sr_returned_date_sk - ss_sold_date_sk <= 30 ) then 1 else 0 end)  as "30 days" 
+  ,sum(case when (sr_returned_date_sk - ss_sold_date_sk > 30) and 
+                 (sr_returned_date_sk - ss_sold_date_sk <= 60) then 1 else 0 end )  as "31-60 days" 
+  ,sum(case when (sr_returned_date_sk - ss_sold_date_sk > 60) and 
+                 (sr_returned_date_sk - ss_sold_date_sk <= 90) then 1 else 0 end)  as "61-90 days" 
+  ,sum(case when (sr_returned_date_sk - ss_sold_date_sk > 90) and
+                 (sr_returned_date_sk - ss_sold_date_sk <= 120) then 1 else 0 end)  as "91-120 days" 
+  ,sum(case when (sr_returned_date_sk - ss_sold_date_sk  > 120) then 1 else 0 end)  as ">120 days" 
+from
+   store_sales
+  ,store_returns
+  ,store
+  ,date_dim d1
+  ,date_dim d2
+where
+    d2.d_year = 2000
+and d2.d_moy  = 9
+and ss_ticket_number = sr_ticket_number
+and ss_item_sk = sr_item_sk
+and ss_sold_date_sk   = d1.d_date_sk
+and sr_returned_date_sk   = d2.d_date_sk
+and ss_customer_sk = sr_customer_sk
+and ss_store_sk = s_store_sk
+group by
+   s_store_name
+  ,s_company_id
+  ,s_street_number
+  ,s_street_name
+  ,s_street_type
+  ,s_suite_number
+  ,s_city
+  ,s_county
+  ,s_state
+  ,s_zip
+order by s_store_name
+        ,s_company_id
+        ,s_street_number
+        ,s_street_name
+        ,s_street_type
+        ,s_suite_number
+        ,s_city
+        ,s_county
+        ,s_state
+        ,s_zip
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query52 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" date_dim (window 1), item (window 1), store_sales (window 1) " ioTime="3" output=" Query52 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  dt.d_year
+ 	,item.i_brand_id brand_id
+ 	,item.i_brand brand
+ 	,sum(ss_ext_sales_price) ext_price
+ from date_dim dt
+     ,store_sales
+     ,item
+ where dt.d_date_sk = store_sales.ss_sold_date_sk
+    and store_sales.ss_item_sk = item.i_item_sk
+    and item.i_manager_id = 1
+    and dt.d_moy=12
+    and dt.d_year=1998
+ group by dt.d_year
+ 	,item.i_brand
+ 	,item.i_brand_id
+ order by dt.d_year
+ 	,ext_price desc
+ 	,brand_id
+limit 100 ;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query53 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" date_dim (window 1), item (window 1), store (window 1), store_sales (window 1) " ioTime="3" output=" Query53 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  * from 
+(select i_manufact_id,
+sum(ss_sales_price) sum_sales,
+avg(sum(ss_sales_price)) over (partition by i_manufact_id) avg_quarterly_sales
+from item, store_sales, date_dim, store
+where ss_item_sk = i_item_sk and
+ss_sold_date_sk = d_date_sk and
+ss_store_sk = s_store_sk and
+d_month_seq in (1176,1176+1,1176+2,1176+3,1176+4,1176+5,1176+6,1176+7,1176+8,1176+9,1176+10,1176+11) and
+((i_category in ('Books','Children','Electronics') and
+i_class in ('personal','portable','reference','self-help') and
+i_brand in ('scholaramalgamalg #14','scholaramalgamalg #7',
+		'exportiunivamalg #9','scholaramalgamalg #9'))
+or(i_category in ('Women','Music','Men') and
+i_class in ('accessories','classical','fragrances','pants') and
+i_brand in ('amalgimporto #1','edu packscholar #1','exportiimporto #1',
+		'importoamalg #1')))
+group by i_manufact_id, d_qoy ) tmp1
+where case when avg_quarterly_sales > 0 
+	then abs (sum_sales - avg_quarterly_sales)/ avg_quarterly_sales 
+	else null end > 0.1
+order by avg_quarterly_sales,
+	 sum_sales,
+	 i_manufact_id
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query55 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" date_dim (window 1), item (window 1), store_sales (window 1) " ioTime="3" output=" Query55 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  i_brand_id brand_id, i_brand brand,
+ 	sum(ss_ext_sales_price) ext_price
+ from date_dim, store_sales, item
+ where d_date_sk = ss_sold_date_sk
+ 	and ss_item_sk = i_item_sk
+ 	and i_manager_id=36
+ 	and d_moy=12
+ 	and d_year=2001
+ group by i_brand, i_brand_id
+ order by ext_price desc, i_brand_id
+limit 100 ;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query59 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" date_dim (window 1), store (window 1), store_sales (window 1) " ioTime="3" output=" Query59 (window 1) ">
+                        <query>
+<![CDATA[
+
+with wss as 
+ (select d_week_seq,
+        ss_store_sk,
+        sum(case when (d_day_name='Sunday') then ss_sales_price else null end) sun_sales,
+        sum(case when (d_day_name='Monday') then ss_sales_price else null end) mon_sales,
+        sum(case when (d_day_name='Tuesday') then ss_sales_price else  null end) tue_sales,
+        sum(case when (d_day_name='Wednesday') then ss_sales_price else null end) wed_sales,
+        sum(case when (d_day_name='Thursday') then ss_sales_price else null end) thu_sales,
+        sum(case when (d_day_name='Friday') then ss_sales_price else null end) fri_sales,
+        sum(case when (d_day_name='Saturday') then ss_sales_price else null end) sat_sales
+ from store_sales,date_dim
+ where d_date_sk = ss_sold_date_sk
+ group by d_week_seq,ss_store_sk
+ )
+  select  s_store_name1,s_store_id1,d_week_seq1
+       ,sun_sales1/sun_sales2,mon_sales1/mon_sales2
+       ,tue_sales1/tue_sales1,wed_sales1/wed_sales2,thu_sales1/thu_sales2
+       ,fri_sales1/fri_sales2,sat_sales1/sat_sales2
+ from
+ (select s_store_name s_store_name1,wss.d_week_seq d_week_seq1
+        ,s_store_id s_store_id1,sun_sales sun_sales1
+        ,mon_sales mon_sales1,tue_sales tue_sales1
+        ,wed_sales wed_sales1,thu_sales thu_sales1
+        ,fri_sales fri_sales1,sat_sales sat_sales1
+  from wss,store,date_dim d
+  where d.d_week_seq = wss.d_week_seq and
+        ss_store_sk = s_store_sk and 
+        d_month_seq between 1176 and 1176 + 11) y,
+ (select s_store_name s_store_name2,wss.d_week_seq d_week_seq2
+        ,s_store_id s_store_id2,sun_sales sun_sales2
+        ,mon_sales mon_sales2,tue_sales tue_sales2
+        ,wed_sales wed_sales2,thu_sales thu_sales2
+        ,fri_sales fri_sales2,sat_sales sat_sales2
+  from wss,store,date_dim d
+  where d.d_week_seq = wss.d_week_seq and
+        ss_store_sk = s_store_sk and 
+        d_month_seq between 1176+ 12 and 1176 + 23) x
+ where s_store_id1=s_store_id2
+   and d_week_seq1=d_week_seq2-52
+ order by s_store_name1,s_store_id1,d_week_seq1
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query5 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_page (window 1), catalog_returns (window 1), catalog_sales (window 1), date_dim (window 1), item (window 1), store (window 1), store_returns (window 1), store_sales (window 1), web_returns (window 1), web_sales (window 1), web_site (window 1) " ioTime="3" output=" Query5 (window 1) ">
+                        <query>
+<![CDATA[
+--Query 5, exec_time ~ 2.3 sec
+with ssr as
+ (select s_store_id,
+        sum(sales_price) as sales,
+        sum(profit) as profit,
+        sum(return_amt) as returns,
+        sum(net_loss) as profit_loss
+ from
+  ( select  ss_store_sk as store_sk,
+            ss_sold_date_sk  as date_sk,
+            ss_ext_sales_price as sales_price,
+            ss_net_profit as profit,
+            cast(0 as decimal(7,2)) as return_amt,
+            cast(0 as decimal(7,2)) as net_loss
+    from store_sales
+    union all
+    select sr_store_sk as store_sk,
+           sr_returned_date_sk as date_sk,
+           cast(0 as decimal(7,2)) as sales_price,
+           cast(0 as decimal(7,2)) as profit,
+           sr_return_amt as return_amt,
+           sr_net_loss as net_loss
+    from store_returns
+   ) salesreturns,
+     date_dim,
+     store
+ where date_sk = d_date_sk
+       and d_date between cast('1998-08-04' as date) 
+                  and (cast('1998-08-04' as date) +  14)
+       and store_sk = s_store_sk
+ group by s_store_id)
+ ,
+ csr as
+ (select cp_catalog_page_id,
+        sum(sales_price) as sales,
+        sum(profit) as profit,
+        sum(return_amt) as returns,
+        sum(net_loss) as profit_loss
+ from
+  ( select  cs_catalog_page_sk as page_sk,
+            cs_sold_date_sk  as date_sk,
+            cs_ext_sales_price as sales_price,
+            cs_net_profit as profit,
+            cast(0 as decimal(7,2)) as return_amt,
+            cast(0 as decimal(7,2)) as net_loss
+    from catalog_sales
+    union all
+    select cr_catalog_page_sk as page_sk,
+           cr_returned_date_sk as date_sk,
+           cast(0 as decimal(7,2)) as sales_price,
+           cast(0 as decimal(7,2)) as profit,
+           cr_return_amount as return_amt,
+           cr_net_loss as net_loss
+    from catalog_returns
+   ) salesreturns,
+     date_dim,
+     catalog_page
+ where date_sk = d_date_sk
+       and d_date between cast('1998-08-04' as date)
+                  and (cast('1998-08-04' as date) +  14)
+       and page_sk = cp_catalog_page_sk
+ group by cp_catalog_page_id)
+ ,
+ wsr as
+ (select web_site_id,
+        sum(sales_price) as sales,
+        sum(profit) as profit,
+        sum(return_amt) as returns,
+        sum(net_loss) as profit_loss
+ from
+  ( select  ws_web_site_sk as wsr_web_site_sk,
+            ws_sold_date_sk  as date_sk,
+            ws_ext_sales_price as sales_price,
+            ws_net_profit as profit,
+            cast(0 as decimal(7,2)) as return_amt,
+            cast(0 as decimal(7,2)) as net_loss
+    from web_sales
+    union all
+    select ws_web_site_sk as wsr_web_site_sk,
+           wr_returned_date_sk as date_sk,
+           cast(0 as decimal(7,2)) as sales_price,
+           cast(0 as decimal(7,2)) as profit,
+           wr_return_amt as return_amt,
+           wr_net_loss as net_loss
+    from web_returns left outer join web_sales on
+         ( wr_item_sk = ws_item_sk
+           and wr_order_number = ws_order_number)
+   ) salesreturns,
+     date_dim,
+     web_site
+ where date_sk = d_date_sk
+       and d_date between cast('1998-08-04' as date)
+                  and (cast('1998-08-04' as date) +  14)
+       and wsr_web_site_sk = web_site_sk
+ group by web_site_id)
+  select  channel
+        , id
+        , sum(sales) as sales
+        , sum(returns) as returns
+        , sum(profit) as profit
+ from 
+ (select 'store channel' as channel
+        , 'store' || s_store_id as id
+        , sales
+        , returns
+        , (profit - profit_loss) as profit
+ from   ssr
+ union all
+ select 'catalog channel' as channel
+        , 'catalog_page' || cp_catalog_page_id as id
+        , sales
+        , returns
+        , (profit - profit_loss) as profit
+ from  csr
+ union all
+ select 'web channel' as channel
+        , 'web_site' || web_site_id as id
+        , sales
+        , returns
+        , (profit - profit_loss) as profit
+ from   wsr
+ ) x
+ --group by rollup (channel, id)
+ group by channel, id
+ order by channel
+         ,id
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query60 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), customer_address (window 1), date_dim (window 1), item (window 1), store_sales (window 1), web_sales (window 1) " ioTime="3" output=" Query60 (window 1) ">
+                        <query>
+<![CDATA[
+
+with ss as (
+ select
+          i_item_id,sum(ss_ext_sales_price) total_sales
+ from
+ 	store_sales,
+ 	date_dim,
+         customer_address,
+         item
+ where
+         i_item_id in (select
+  i_item_id
+from
+ item
+where i_category in ('Children'))
+ and     ss_item_sk              = i_item_sk
+ and     ss_sold_date_sk         = d_date_sk
+ and     d_year                  = 1999
+ and     d_moy                   = 9
+ and     ss_addr_sk              = ca_address_sk
+ and     ca_gmt_offset           = -6 
+ group by i_item_id),
+ cs as (
+ select
+          i_item_id,sum(cs_ext_sales_price) total_sales
+ from
+ 	catalog_sales,
+ 	date_dim,
+         customer_address,
+         item
+ where
+         i_item_id               in (select
+  i_item_id
+from
+ item
+where i_category in ('Children'))
+ and     cs_item_sk              = i_item_sk
+ and     cs_sold_date_sk         = d_date_sk
+ and     d_year                  = 1999
+ and     d_moy                   = 9
+ and     cs_bill_addr_sk         = ca_address_sk
+ and     ca_gmt_offset           = -6 
+ group by i_item_id),
+ ws as (
+ select
+          i_item_id,sum(ws_ext_sales_price) total_sales
+ from
+ 	web_sales,
+ 	date_dim,
+         customer_address,
+         item
+ where
+         i_item_id               in (select
+  i_item_id
+from
+ item
+where i_category in ('Children'))
+ and     ws_item_sk              = i_item_sk
+ and     ws_sold_date_sk         = d_date_sk
+ and     d_year                  = 1999
+ and     d_moy                   = 9
+ and     ws_bill_addr_sk         = ca_address_sk
+ and     ca_gmt_offset           = -6
+ group by i_item_id)
+  select   
+  i_item_id
+,sum(total_sales) total_sales
+ from  (select * from ss 
+        union all
+        select * from cs 
+        union all
+        select * from ws) tmp1
+ group by i_item_id
+ order by i_item_id
+      ,total_sales
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query63 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" date_dim (window 1), item (window 1), store (window 1), store_sales (window 1) " ioTime="3" output=" Query63 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  * 
+from (select i_manager_id
+             ,sum(ss_sales_price) sum_sales
+             ,avg(sum(ss_sales_price)) over (partition by i_manager_id) avg_monthly_sales
+      from item
+          ,store_sales
+          ,date_dim
+          ,store
+      where ss_item_sk = i_item_sk
+        and ss_sold_date_sk = d_date_sk
+        and ss_store_sk = s_store_sk
+        and d_month_seq in (1176,1176+1,1176+2,1176+3,1176+4,1176+5,1176+6,1176+7,1176+8,1176+9,1176+10,1176+11)
+        and ((    i_category in ('Books','Children','Electronics')
+              and i_class in ('personal','portable','refernece','self-help')
+              and i_brand in ('scholaramalgamalg #14','scholaramalgamalg #7',
+		                  'exportiunivamalg #9','scholaramalgamalg #9'))
+           or(    i_category in ('Women','Music','Men')
+              and i_class in ('accessories','classical','fragrances','pants')
+              and i_brand in ('amalgimporto #1','edu packscholar #1','exportiimporto #1',
+		                 'importoamalg #1')))
+group by i_manager_id, d_moy) tmp1
+where case when avg_monthly_sales > 0 then abs (sum_sales - avg_monthly_sales) / avg_monthly_sales else null end > 0.1
+order by i_manager_id
+        ,avg_monthly_sales
+        ,sum_sales
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query64 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_returns (window 1), catalog_sales (window 1), customer (window 1), customer_address (window 1), customer_demographics (window 1), date_dim (window 1), household_demographics (window 1), income_band (window 1), item (window 1), promotion (window 1), store (window 1), store_returns (window 1), store_sales (window 1) " ioTime="3" output=" Query64 (window 1) ">
+                        <query>
+<![CDATA[
+
+with cs_ui as
+ (select cs_item_sk
+        ,sum(cs_ext_list_price) as sale,sum(cr_refunded_cash+cr_reversed_charge+cr_store_credit) as refund
+  from catalog_sales
+      ,catalog_returns
+  where cs_item_sk = cr_item_sk
+    and cs_order_number = cr_order_number
+  group by cs_item_sk
+  having sum(cs_ext_list_price)>2*sum(cr_refunded_cash+cr_reversed_charge+cr_store_credit)),
+cross_sales as
+ (select i_product_name product_name
+     ,i_item_sk item_sk
+     ,s_store_name store_name
+     ,s_zip store_zip
+     ,ad1.ca_street_number b_street_number
+     ,ad1.ca_street_name b_streen_name
+     ,ad1.ca_city b_city
+     ,ad1.ca_zip b_zip
+     ,ad2.ca_street_number c_street_number
+     ,ad2.ca_street_name c_street_name
+     ,ad2.ca_city c_city
+     ,ad2.ca_zip c_zip
+     ,d1.d_year as syear
+     ,d2.d_year as fsyear
+     ,d3.d_year s2year
+     ,count(*) cnt
+     ,sum(ss_wholesale_cost) s1
+     ,sum(ss_list_price) s2
+     ,sum(ss_coupon_amt) s3
+  FROM   store_sales
+        ,store_returns
+        ,cs_ui
+        ,date_dim d1
+        ,date_dim d2
+        ,date_dim d3
+        ,store
+        ,customer
+        ,customer_demographics cd1
+        ,customer_demographics cd2
+        ,promotion
+        ,household_demographics hd1
+        ,household_demographics hd2
+        ,customer_address ad1
+        ,customer_address ad2
+        ,income_band ib1
+        ,income_band ib2
+        ,item
+  WHERE  ss_store_sk = s_store_sk AND
+         ss_sold_date_sk = d1.d_date_sk AND
+         ss_customer_sk = c_customer_sk AND
+         ss_cdemo_sk= cd1.cd_demo_sk AND
+         ss_hdemo_sk = hd1.hd_demo_sk AND
+         ss_addr_sk = ad1.ca_address_sk and
+         ss_item_sk = i_item_sk and
+         ss_item_sk = sr_item_sk and
+         ss_ticket_number = sr_ticket_number and
+         ss_item_sk = cs_ui.cs_item_sk and
+         c_current_cdemo_sk = cd2.cd_demo_sk AND
+         c_current_hdemo_sk = hd2.hd_demo_sk AND
+         c_current_addr_sk = ad2.ca_address_sk and
+         c_first_sales_date_sk = d2.d_date_sk and
+         c_first_shipto_date_sk = d3.d_date_sk and
+         ss_promo_sk = p_promo_sk and
+         hd1.hd_income_band_sk = ib1.ib_income_band_sk and
+         hd2.hd_income_band_sk = ib2.ib_income_band_sk and
+         cd1.cd_marital_status <> cd2.cd_marital_status and
+         i_color in ('maroon','burnished','dim','steel','navajo','chocolate') and
+         i_current_price between 35 and 35 + 10 and
+         i_current_price between 35 + 1 and 35 + 15
+group by i_product_name
+       ,i_item_sk
+       ,s_store_name
+       ,s_zip
+       ,ad1.ca_street_number
+       ,ad1.ca_street_name
+       ,ad1.ca_city
+       ,ad1.ca_zip
+       ,ad2.ca_street_number
+       ,ad2.ca_street_name
+       ,ad2.ca_city
+       ,ad2.ca_zip
+       ,d1.d_year
+       ,d2.d_year
+       ,d3.d_year
+)
+select cs1.product_name
+     ,cs1.store_name
+     ,cs1.store_zip
+     ,cs1.b_street_number
+     ,cs1.b_streen_name
+     ,cs1.b_city
+     ,cs1.b_zip
+     ,cs1.c_street_number
+     ,cs1.c_street_name
+     ,cs1.c_city
+     ,cs1.c_zip
+     ,cs1.syear
+     ,cs1.cnt
+     ,cs1.s1
+     ,cs1.s2
+     ,cs1.s3
+     ,cs2.s1
+     ,cs2.s2
+     ,cs2.s3
+     ,cs2.syear
+     ,cs2.cnt
+from cross_sales cs1,cross_sales cs2
+where cs1.item_sk=cs2.item_sk and
+     cs1.syear = 2000 and
+     cs2.syear = 2000 + 1 and
+     cs2.cnt <= cs1.cnt and
+     cs1.store_name = cs2.store_name and
+     cs1.store_zip = cs2.store_zip
+order by cs1.product_name
+       ,cs1.store_name
+       ,cs2.cnt;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query65 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" date_dim (window 1), item (window 1), store (window 1), store_sales (window 1) " ioTime="3" output=" Query65 (window 1) ">
+                        <query>
+<![CDATA[
+
+select 
+	s_store_name,
+	i_item_desc,
+	sc.revenue,
+	i_current_price,
+	i_wholesale_cost,
+	i_brand
+ from store, item,
+     (select ss_store_sk, avg(revenue) as ave
+ 	from
+ 	    (select  ss_store_sk, ss_item_sk, 
+ 		     sum(ss_sales_price) as revenue
+ 		from store_sales, date_dim
+ 		where ss_sold_date_sk = d_date_sk and d_month_seq between 1176 and 1176+11
+ 		group by ss_store_sk, ss_item_sk) sa
+ 	group by ss_store_sk) sb,
+     (select  ss_store_sk, ss_item_sk, sum(ss_sales_price) as revenue
+ 	from store_sales, date_dim
+ 	where ss_sold_date_sk = d_date_sk and d_month_seq between 1176 and 1176+11
+ 	group by ss_store_sk, ss_item_sk) sc
+ where sb.ss_store_sk = sc.ss_store_sk and 
+       sc.revenue <= 0.1 * sb.ave and
+       s_store_sk = sc.ss_store_sk and
+       i_item_sk = sc.ss_item_sk
+ order by s_store_name, i_item_desc
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query66 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), date_dim (window 1), ship_mode (window 1), time_dim (window 1), warehouse (window 1), web_sales (window 1) " ioTime="3" output=" Query66 (window 1) ">
+                        <query>
+<![CDATA[
+
+select   
+         w_warehouse_name
+ 	,w_warehouse_sq_ft
+ 	,w_city
+ 	,w_county
+ 	,w_state
+ 	,w_country
+        ,ship_carriers
+        ,year
+ 	,sum(jan_sales) as jan_sales
+ 	,sum(feb_sales) as feb_sales
+ 	,sum(mar_sales) as mar_sales
+ 	,sum(apr_sales) as apr_sales
+ 	,sum(may_sales) as may_sales
+ 	,sum(jun_sales) as jun_sales
+ 	,sum(jul_sales) as jul_sales
+ 	,sum(aug_sales) as aug_sales
+ 	,sum(sep_sales) as sep_sales
+ 	,sum(oct_sales) as oct_sales
+ 	,sum(nov_sales) as nov_sales
+ 	,sum(dec_sales) as dec_sales
+ 	,sum(jan_sales/w_warehouse_sq_ft) as jan_sales_per_sq_foot
+ 	,sum(feb_sales/w_warehouse_sq_ft) as feb_sales_per_sq_foot
+ 	,sum(mar_sales/w_warehouse_sq_ft) as mar_sales_per_sq_foot
+ 	,sum(apr_sales/w_warehouse_sq_ft) as apr_sales_per_sq_foot
+ 	,sum(may_sales/w_warehouse_sq_ft) as may_sales_per_sq_foot
+ 	,sum(jun_sales/w_warehouse_sq_ft) as jun_sales_per_sq_foot
+ 	,sum(jul_sales/w_warehouse_sq_ft) as jul_sales_per_sq_foot
+ 	,sum(aug_sales/w_warehouse_sq_ft) as aug_sales_per_sq_foot
+ 	,sum(sep_sales/w_warehouse_sq_ft) as sep_sales_per_sq_foot
+ 	,sum(oct_sales/w_warehouse_sq_ft) as oct_sales_per_sq_foot
+ 	,sum(nov_sales/w_warehouse_sq_ft) as nov_sales_per_sq_foot
+ 	,sum(dec_sales/w_warehouse_sq_ft) as dec_sales_per_sq_foot
+ 	,sum(jan_net) as jan_net
+ 	,sum(feb_net) as feb_net
+ 	,sum(mar_net) as mar_net
+ 	,sum(apr_net) as apr_net
+ 	,sum(may_net) as may_net
+ 	,sum(jun_net) as jun_net
+ 	,sum(jul_net) as jul_net
+ 	,sum(aug_net) as aug_net
+ 	,sum(sep_net) as sep_net
+ 	,sum(oct_net) as oct_net
+ 	,sum(nov_net) as nov_net
+ 	,sum(dec_net) as dec_net
+ from (
+    (select 
+ 	w_warehouse_name
+ 	,w_warehouse_sq_ft
+ 	,w_city
+ 	,w_county
+ 	,w_state
+ 	,w_country
+ 	,'DIAMOND' || ',' || 'AIRBORNE' as ship_carriers
+       ,d_year as year
+ 	,sum(case when d_moy = 1 
+ 		then ws_sales_price* ws_quantity else 0 end) as jan_sales
+ 	,sum(case when d_moy = 2 
+ 		then ws_sales_price* ws_quantity else 0 end) as feb_sales
+ 	,sum(case when d_moy = 3 
+ 		then ws_sales_price* ws_quantity else 0 end) as mar_sales
+ 	,sum(case when d_moy = 4 
+ 		then ws_sales_price* ws_quantity else 0 end) as apr_sales
+ 	,sum(case when d_moy = 5 
+ 		then ws_sales_price* ws_quantity else 0 end) as may_sales
+ 	,sum(case when d_moy = 6 
+ 		then ws_sales_price* ws_quantity else 0 end) as jun_sales
+ 	,sum(case when d_moy = 7 
+ 		then ws_sales_price* ws_quantity else 0 end) as jul_sales
+ 	,sum(case when d_moy = 8 
+ 		then ws_sales_price* ws_quantity else 0 end) as aug_sales
+ 	,sum(case when d_moy = 9 
+ 		then ws_sales_price* ws_quantity else 0 end) as sep_sales
+ 	,sum(case when d_moy = 10 
+ 		then ws_sales_price* ws_quantity else 0 end) as oct_sales
+ 	,sum(case when d_moy = 11
+ 		then ws_sales_price* ws_quantity else 0 end) as nov_sales
+ 	,sum(case when d_moy = 12
+ 		then ws_sales_price* ws_quantity else 0 end) as dec_sales
+ 	,sum(case when d_moy = 1 
+ 		then ws_net_paid_inc_tax * ws_quantity else 0 end) as jan_net
+ 	,sum(case when d_moy = 2
+ 		then ws_net_paid_inc_tax * ws_quantity else 0 end) as feb_net
+ 	,sum(case when d_moy = 3 
+ 		then ws_net_paid_inc_tax * ws_quantity else 0 end) as mar_net
+ 	,sum(case when d_moy = 4 
+ 		then ws_net_paid_inc_tax * ws_quantity else 0 end) as apr_net
+ 	,sum(case when d_moy = 5 
+ 		then ws_net_paid_inc_tax * ws_quantity else 0 end) as may_net
+ 	,sum(case when d_moy = 6 
+ 		then ws_net_paid_inc_tax * ws_quantity else 0 end) as jun_net
+ 	,sum(case when d_moy = 7 
+ 		then ws_net_paid_inc_tax * ws_quantity else 0 end) as jul_net
+ 	,sum(case when d_moy = 8 
+ 		then ws_net_paid_inc_tax * ws_quantity else 0 end) as aug_net
+ 	,sum(case when d_moy = 9 
+ 		then ws_net_paid_inc_tax * ws_quantity else 0 end) as sep_net
+ 	,sum(case when d_moy = 10 
+ 		then ws_net_paid_inc_tax * ws_quantity else 0 end) as oct_net
+ 	,sum(case when d_moy = 11
+ 		then ws_net_paid_inc_tax * ws_quantity else 0 end) as nov_net
+ 	,sum(case when d_moy = 12
+ 		then ws_net_paid_inc_tax * ws_quantity else 0 end) as dec_net
+     from
+          web_sales
+         ,warehouse
+         ,date_dim
+         ,time_dim
+ 	  ,ship_mode
+     where
+            ws_warehouse_sk =  w_warehouse_sk
+        and ws_sold_date_sk = d_date_sk
+        and ws_sold_time_sk = t_time_sk
+ 	and ws_ship_mode_sk = sm_ship_mode_sk
+        and d_year = 2002
+ 	and t_time between 49530 and 49530+28800 
+ 	and sm_carrier in ('DIAMOND','AIRBORNE')
+     group by 
+        w_warehouse_name
+ 	,w_warehouse_sq_ft
+ 	,w_city
+ 	,w_county
+ 	,w_state
+ 	,w_country
+       ,d_year
+ 	)
+ union all
+    (select 
+ 	w_warehouse_name
+ 	,w_warehouse_sq_ft
+ 	,w_city
+ 	,w_county
+ 	,w_state
+ 	,w_country
+ 	,'DIAMOND' || ',' || 'AIRBORNE' as ship_carriers
+       ,d_year as year
+ 	,sum(case when d_moy = 1 
+ 		then cs_ext_sales_price* cs_quantity else 0 end) as jan_sales
+ 	,sum(case when d_moy = 2 
+ 		then cs_ext_sales_price* cs_quantity else 0 end) as feb_sales
+ 	,sum(case when d_moy = 3 
+ 		then cs_ext_sales_price* cs_quantity else 0 end) as mar_sales
+ 	,sum(case when d_moy = 4 
+ 		then cs_ext_sales_price* cs_quantity else 0 end) as apr_sales
+ 	,sum(case when d_moy = 5 
+ 		then cs_ext_sales_price* cs_quantity else 0 end) as may_sales
+ 	,sum(case when d_moy = 6 
+ 		then cs_ext_sales_price* cs_quantity else 0 end) as jun_sales
+ 	,sum(case when d_moy = 7 
+ 		then cs_ext_sales_price* cs_quantity else 0 end) as jul_sales
+ 	,sum(case when d_moy = 8 
+ 		then cs_ext_sales_price* cs_quantity else 0 end) as aug_sales
+ 	,sum(case when d_moy = 9 
+ 		then cs_ext_sales_price* cs_quantity else 0 end) as sep_sales
+ 	,sum(case when d_moy = 10 
+ 		then cs_ext_sales_price* cs_quantity else 0 end) as oct_sales
+ 	,sum(case when d_moy = 11
+ 		then cs_ext_sales_price* cs_quantity else 0 end) as nov_sales
+ 	,sum(case when d_moy = 12
+ 		then cs_ext_sales_price* cs_quantity else 0 end) as dec_sales
+ 	,sum(case when d_moy = 1 
+ 		then cs_net_paid_inc_ship_tax * cs_quantity else 0 end) as jan_net
+ 	,sum(case when d_moy = 2 
+ 		then cs_net_paid_inc_ship_tax * cs_quantity else 0 end) as feb_net
+ 	,sum(case when d_moy = 3 
+ 		then cs_net_paid_inc_ship_tax * cs_quantity else 0 end) as mar_net
+ 	,sum(case when d_moy = 4 
+ 		then cs_net_paid_inc_ship_tax * cs_quantity else 0 end) as apr_net
+ 	,sum(case when d_moy = 5 
+ 		then cs_net_paid_inc_ship_tax * cs_quantity else 0 end) as may_net
+ 	,sum(case when d_moy = 6 
+ 		then cs_net_paid_inc_ship_tax * cs_quantity else 0 end) as jun_net
+ 	,sum(case when d_moy = 7 
+ 		then cs_net_paid_inc_ship_tax * cs_quantity else 0 end) as jul_net
+ 	,sum(case when d_moy = 8 
+ 		then cs_net_paid_inc_ship_tax * cs_quantity else 0 end) as aug_net
+ 	,sum(case when d_moy = 9 
+ 		then cs_net_paid_inc_ship_tax * cs_quantity else 0 end) as sep_net
+ 	,sum(case when d_moy = 10 
+ 		then cs_net_paid_inc_ship_tax * cs_quantity else 0 end) as oct_net
+ 	,sum(case when d_moy = 11
+ 		then cs_net_paid_inc_ship_tax * cs_quantity else 0 end) as nov_net
+ 	,sum(case when d_moy = 12
+ 		then cs_net_paid_inc_ship_tax * cs_quantity else 0 end) as dec_net
+     from
+          catalog_sales
+         ,warehouse
+         ,date_dim
+         ,time_dim
+ 	 ,ship_mode
+     where
+            cs_warehouse_sk =  w_warehouse_sk
+        and cs_sold_date_sk = d_date_sk
+        and cs_sold_time_sk = t_time_sk
+ 	and cs_ship_mode_sk = sm_ship_mode_sk
+        and d_year = 2002
+ 	and t_time between 49530 AND 49530+28800 
+ 	and sm_carrier in ('DIAMOND','AIRBORNE')
+     group by 
+        w_warehouse_name
+ 	,w_warehouse_sq_ft
+ 	,w_city
+ 	,w_county
+ 	,w_state
+ 	,w_country
+       ,d_year
+     ) 
+ ) x
+ group by 
+        w_warehouse_name
+ 	,w_warehouse_sq_ft
+ 	,w_city
+ 	,w_county
+ 	,w_state
+ 	,w_country
+ 	,ship_carriers
+       ,year
+ order by w_warehouse_name
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query67 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" date_dim (window 1), item (window 1), store (window 1), store_sales (window 1) " ioTime="3" output=" Query67 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  *
+from (select i_category
+            ,i_class
+            ,i_brand
+            ,i_product_name
+            ,d_year
+            ,d_qoy
+            ,d_moy
+            ,s_store_id
+            ,sumsales
+            ,rank() over (partition by i_category order by sumsales desc) rk
+      from (select i_category
+                  ,i_class
+                  ,i_brand
+                  ,i_product_name
+                  ,d_year
+                  ,d_qoy
+                  ,d_moy
+                  ,s_store_id
+                  ,sum(coalesce(ss_sales_price*ss_quantity,0)) sumsales
+            from store_sales
+                ,date_dim
+                ,store
+                ,item
+       where  ss_sold_date_sk=d_date_sk
+          and ss_item_sk=i_item_sk
+          and ss_store_sk = s_store_sk
+          and d_month_seq between 1176 and 1176+11
+       group by  i_category, i_class, i_brand, i_product_name, d_year, d_qoy, d_moy,s_store_id)dw1) dw2
+where rk <= 100
+order by i_category
+        ,i_class
+        ,i_brand
+        ,i_product_name
+        ,d_year
+        ,d_qoy
+        ,d_moy
+        ,s_store_id
+        ,sumsales
+        ,rk
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query68 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" customer (window 1), customer_address (window 1), date_dim (window 1), household_demographics (window 1), store (window 1), store_sales (window 1) " ioTime="3" output=" Query68 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  c_last_name
+       ,c_first_name
+       ,ca_city
+       ,bought_city
+       ,ss_ticket_number
+       ,extended_price
+       ,extended_tax
+       ,list_price
+ from (select ss_ticket_number
+             ,ss_customer_sk
+             ,ca_city bought_city
+             ,sum(ss_ext_sales_price) extended_price 
+             ,sum(ss_ext_list_price) list_price
+             ,sum(ss_ext_tax) extended_tax 
+       from store_sales
+           ,date_dim
+           ,store
+           ,household_demographics
+           ,customer_address 
+       where store_sales.ss_sold_date_sk = date_dim.d_date_sk
+         and store_sales.ss_store_sk = store.s_store_sk  
+        and store_sales.ss_hdemo_sk = household_demographics.hd_demo_sk
+        and store_sales.ss_addr_sk = customer_address.ca_address_sk
+        and date_dim.d_dom between 1 and 2 
+        and (household_demographics.hd_dep_count = 5 or
+             household_demographics.hd_vehicle_count= 3)
+        and date_dim.d_year in (1999,1999+1,1999+2)
+        and store.s_city in ('Midway','Fairview')
+       group by ss_ticket_number
+               ,ss_customer_sk
+               ,ss_addr_sk,ca_city) dn
+      ,customer
+      ,customer_address current_addr
+ where ss_customer_sk = c_customer_sk
+   and customer.c_current_addr_sk = current_addr.ca_address_sk
+   and current_addr.ca_city <> bought_city
+ order by c_last_name
+         ,ss_ticket_number
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query69 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), customer (window 1), customer_address (window 1), customer_demographics (window 1), date_dim (window 1), store_sales (window 1), web_sales (window 1) " ioTime="3" output=" Query69 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  
+  cd_gender,
+  cd_marital_status,
+  cd_education_status,
+  count(*) cnt1,
+  cd_purchase_estimate,
+  count(*) cnt2,
+  cd_credit_rating,
+  count(*) cnt3
+ from
+  customer c,customer_address ca,customer_demographics
+ where
+  c.c_current_addr_sk = ca.ca_address_sk and
+  ca_state in ('CO','IL','MN') and
+  cd_demo_sk = c.c_current_cdemo_sk and 
+  exists (select *
+          from store_sales,date_dim
+          where c.c_customer_sk = ss_customer_sk and
+                ss_sold_date_sk = d_date_sk and
+                d_year = 1999 and
+                d_moy between 1 and 1+2) and
+   (not exists (select *
+            from web_sales,date_dim
+            where c.c_customer_sk = ws_bill_customer_sk and
+                  ws_sold_date_sk = d_date_sk and
+                  d_year = 1999 and
+                  d_moy between 1 and 1+2) and
+    not exists (select * 
+            from catalog_sales,date_dim
+            where c.c_customer_sk = cs_ship_customer_sk and
+                  cs_sold_date_sk = d_date_sk and
+                  d_year = 1999 and
+                  d_moy between 1 and 1+2))
+ group by cd_gender,
+          cd_marital_status,
+          cd_education_status,
+          cd_purchase_estimate,
+          cd_credit_rating
+ order by cd_gender,
+          cd_marital_status,
+          cd_education_status,
+          cd_purchase_estimate,
+          cd_credit_rating
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query71 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), date_dim (window 1), item (window 1), store_sales (window 1), time_dim (window 1), web_sales (window 1) " ioTime="3" output=" Query71 (window 1) ">
+                        <query>
+<![CDATA[
+
+select i_brand_id brand_id, i_brand brand,t_hour,t_minute,
+ 	sum(ext_price) ext_price
+ from item, (select ws_ext_sales_price as ext_price, 
+                        ws_sold_date_sk as sold_date_sk,
+                        ws_item_sk as sold_item_sk,
+                        ws_sold_time_sk as time_sk  
+                 from web_sales,date_dim
+                 where d_date_sk = ws_sold_date_sk
+                   and d_moy=12
+                   and d_year=2001
+                 union all
+                 select cs_ext_sales_price as ext_price,
+                        cs_sold_date_sk as sold_date_sk,
+                        cs_item_sk as sold_item_sk,
+                        cs_sold_time_sk as time_sk
+                 from catalog_sales,date_dim
+                 where d_date_sk = cs_sold_date_sk
+                   and d_moy=12
+                   and d_year=2001
+                 union all
+                 select ss_ext_sales_price as ext_price,
+                        ss_sold_date_sk as sold_date_sk,
+                        ss_item_sk as sold_item_sk,
+                        ss_sold_time_sk as time_sk
+                 from store_sales,date_dim
+                 where d_date_sk = ss_sold_date_sk
+                   and d_moy=12
+                   and d_year=2001
+                 ) as tmp,time_dim
+ where
+   sold_item_sk = i_item_sk
+   and i_manager_id=1
+   and time_sk = t_time_sk
+   and (t_meal_time = 'breakfast' or t_meal_time = 'dinner')
+ group by i_brand, i_brand_id,t_hour,t_minute
+ order by ext_price desc, i_brand_id
+ ;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query75 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_returns (window 1), catalog_sales (window 1), date_dim (window 1), item (window 1), store_returns (window 1), store_sales (window 1), web_returns (window 1), web_sales (window 1) " ioTime="3" output=" Query75 (window 1) ">
+                        <query>
+<![CDATA[
+
+WITH all_sales AS (
+ SELECT d_year
+       ,i_brand_id
+       ,i_class_id
+       ,i_category_id
+       ,i_manufact_id
+       ,SUM(sales_cnt) AS sales_cnt
+       ,SUM(sales_amt) AS sales_amt
+ FROM (SELECT d_year
+             ,i_brand_id
+             ,i_class_id
+             ,i_category_id
+             ,i_manufact_id
+             ,cs_quantity - COALESCE(cr_return_quantity,0) AS sales_cnt
+             ,cs_ext_sales_price - COALESCE(cr_return_amount,0.0) AS sales_amt
+       FROM catalog_sales JOIN item ON i_item_sk=cs_item_sk
+                          JOIN date_dim ON d_date_sk=cs_sold_date_sk
+                          LEFT JOIN catalog_returns ON (cs_order_number=cr_order_number 
+                                                    AND cs_item_sk=cr_item_sk)
+       WHERE i_category='Sports'
+       UNION
+       SELECT d_year
+             ,i_brand_id
+             ,i_class_id
+             ,i_category_id
+             ,i_manufact_id
+             ,ss_quantity - COALESCE(sr_return_quantity,0) AS sales_cnt
+             ,ss_ext_sales_price - COALESCE(sr_return_amt,0.0) AS sales_amt
+       FROM store_sales JOIN item ON i_item_sk=ss_item_sk
+                        JOIN date_dim ON d_date_sk=ss_sold_date_sk
+                        LEFT JOIN store_returns ON (ss_ticket_number=sr_ticket_number 
+                                                AND ss_item_sk=sr_item_sk)
+       WHERE i_category='Sports'
+       UNION
+       SELECT d_year
+             ,i_brand_id
+             ,i_class_id
+             ,i_category_id
+             ,i_manufact_id
+             ,ws_quantity - COALESCE(wr_return_quantity,0) AS sales_cnt
+             ,ws_ext_sales_price - COALESCE(wr_return_amt,0.0) AS sales_amt
+       FROM web_sales JOIN item ON i_item_sk=ws_item_sk
+                      JOIN date_dim ON d_date_sk=ws_sold_date_sk
+                      LEFT JOIN web_returns ON (ws_order_number=wr_order_number 
+                                            AND ws_item_sk=wr_item_sk)
+       WHERE i_category='Sports') sales_detail
+ GROUP BY d_year, i_brand_id, i_class_id, i_category_id, i_manufact_id)
+ SELECT  prev_yr.d_year AS prev_year
+                          ,curr_yr.d_year AS year
+                          ,curr_yr.i_brand_id
+                          ,curr_yr.i_class_id
+                          ,curr_yr.i_category_id
+                          ,curr_yr.i_manufact_id
+                          ,prev_yr.sales_cnt AS prev_yr_cnt
+                          ,curr_yr.sales_cnt AS curr_yr_cnt
+                          ,curr_yr.sales_cnt-prev_yr.sales_cnt AS sales_cnt_diff
+                          ,curr_yr.sales_amt-prev_yr.sales_amt AS sales_amt_diff
+ FROM all_sales curr_yr, all_sales prev_yr
+ WHERE curr_yr.i_brand_id=prev_yr.i_brand_id
+   AND curr_yr.i_class_id=prev_yr.i_class_id
+   AND curr_yr.i_category_id=prev_yr.i_category_id
+   AND curr_yr.i_manufact_id=prev_yr.i_manufact_id
+   AND curr_yr.d_year=2002
+   AND prev_yr.d_year=2002-1
+   AND CAST(curr_yr.sales_cnt AS DECIMAL(17,2))/CAST(prev_yr.sales_cnt AS DECIMAL(17,2))<0.9
+ ORDER BY sales_cnt_diff
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query76 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), date_dim (window 1), item (window 1), store (window 1), store_sales (window 1), warehouse (window 1), web_page (window 1), web_sales (window 1) " ioTime="3" output=" Query76 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  channel, col_name, d_year, d_qoy, i_category, COUNT(*) sales_cnt, SUM(ext_sales_price) sales_amt FROM (
+        SELECT 'store' as channel, 'ss_addr_sk' col_name, d_year, d_qoy, i_category, ss_ext_sales_price ext_sales_price
+         FROM store_sales, item, date_dim
+         WHERE ss_addr_sk IS NULL
+           AND ss_sold_date_sk=d_date_sk
+           AND ss_item_sk=i_item_sk
+        UNION ALL
+        SELECT 'web' as channel, 'ws_web_page_sk' col_name, d_year, d_qoy, i_category, ws_ext_sales_price ext_sales_price
+         FROM web_sales, item, date_dim
+         WHERE ws_web_page_sk IS NULL
+           AND ws_sold_date_sk=d_date_sk
+           AND ws_item_sk=i_item_sk
+        UNION ALL
+        SELECT 'catalog' as channel, 'cs_warehouse_sk' col_name, d_year, d_qoy, i_category, cs_ext_sales_price ext_sales_price
+         FROM catalog_sales, item, date_dim
+         WHERE cs_warehouse_sk IS NULL
+           AND cs_sold_date_sk=d_date_sk
+           AND cs_item_sk=i_item_sk) foo
+GROUP BY channel, col_name, d_year, d_qoy, i_category
+ORDER BY channel, col_name, d_year, d_qoy, i_category
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query79 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" customer (window 1), date_dim (window 1), household_demographics (window 1), store (window 1), store_sales (window 1) " ioTime="3" output=" Query79 (window 1) ">
+                        <query>
+<![CDATA[
+
+select 
+  c_last_name,c_first_name,substr(s_city,1,30),ss_ticket_number,amt,profit
+  from
+   (select ss_ticket_number
+          ,ss_customer_sk
+          ,store.s_city
+          ,sum(ss_coupon_amt) amt
+          ,sum(ss_net_profit) profit
+    from store_sales,date_dim,store,household_demographics
+    where store_sales.ss_sold_date_sk = date_dim.d_date_sk
+    and store_sales.ss_store_sk = store.s_store_sk  
+    and store_sales.ss_hdemo_sk = household_demographics.hd_demo_sk
+    and (household_demographics.hd_dep_count = 8 or household_demographics.hd_vehicle_count > 0)
+    and date_dim.d_dow = 1
+    and date_dim.d_year in (1998,1998+1,1998+2) 
+    and store.s_number_employees between 200 and 295
+    group by ss_ticket_number,ss_customer_sk,ss_addr_sk,store.s_city) ms,customer
+    where ss_customer_sk = c_customer_sk
+ order by c_last_name,c_first_name,substr(s_city,1,30), profit
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query7 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" customer_demographics (window 1), date_dim (window 1), item (window 1), promotion (window 1), store_sales (window 1) " ioTime="3" output=" Query7 (window 1) ">
+                        <query>
+<![CDATA[
+select  i_item_id, 
+        avg(ss_quantity) agg1,
+        avg(ss_list_price) agg2,
+        avg(ss_coupon_amt) agg3,
+        avg(ss_sales_price) agg4 
+ from store_sales, customer_demographics, date_dim, item, promotion
+ where ss_sold_date_sk = d_date_sk and
+       ss_item_sk = i_item_sk and
+       ss_cdemo_sk = cd_demo_sk and
+       ss_promo_sk = p_promo_sk and
+       cd_gender = 'F' and 
+       cd_marital_status = 'W' and
+       cd_education_status = 'Primary' and
+       (p_channel_email = 'N' or p_channel_event = 'N') and
+       d_year = 1998 
+ group by i_item_id
+ order by i_item_id
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query81 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_returns (window 1), customer (window 1), customer_address (window 1), date_dim (window 1) " ioTime="3" output=" Query81 (window 1) ">
+                        <query>
+<![CDATA[
+
+with customer_total_return as
+ (select cr_returning_customer_sk as ctr_customer_sk
+        ,ca_state as ctr_state, 
+ 	sum(cr_return_amt_inc_tax) as ctr_total_return
+ from catalog_returns
+     ,date_dim
+     ,customer_address
+ where cr_returned_date_sk = d_date_sk 
+   and d_year =1998
+   and cr_returning_addr_sk = ca_address_sk 
+ group by cr_returning_customer_sk
+         ,ca_state )
+  select  c_customer_id,c_salutation,c_first_name,c_last_name,ca_street_number,ca_street_name
+                   ,ca_street_type,ca_suite_number,ca_city,ca_county,ca_state,ca_zip,ca_country,ca_gmt_offset
+                  ,ca_location_type,ctr_total_return
+ from customer_total_return ctr1
+     ,customer_address
+     ,customer
+ where ctr1.ctr_total_return > (select avg(ctr_total_return)*1.2
+ 			  from customer_total_return ctr2 
+                  	  where ctr1.ctr_state = ctr2.ctr_state)
+       and ca_address_sk = c_current_addr_sk
+       and ca_state = 'IL'
+       and ctr1.ctr_customer_sk = c_customer_sk
+ order by c_customer_id,c_salutation,c_first_name,c_last_name,ca_street_number,ca_street_name
+                   ,ca_street_type,ca_suite_number,ca_city,ca_county,ca_state,ca_zip,ca_country,ca_gmt_offset
+                  ,ca_location_type,ctr_total_return
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query82 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" date_dim (window 1), inventory (window 1), item (window 1), store_sales (window 1) " ioTime="3" output=" Query82 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  i_item_id
+       ,i_item_desc
+       ,i_current_price
+ from item, inventory, date_dim, store_sales
+ where i_current_price between 30 and 30+30
+ and inv_item_sk = i_item_sk
+ and d_date_sk=inv_date_sk
+ and d_date between cast('2002-05-30' as date) and (cast('2002-05-30' as date) +  60)
+ and i_manufact_id in (437,129,727,663)
+ and inv_quantity_on_hand between 100 and 500
+ and ss_item_sk = i_item_sk
+ group by i_item_id,i_item_desc,i_current_price
+ order by i_item_id
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query83 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_returns (window 1), date_dim (window 1), item (window 1), store_returns (window 1), web_returns (window 1) " ioTime="3" output=" Query83 (window 1) ">
+                        <query>
+<![CDATA[
+
+with sr_items as
+ (select i_item_id item_id,
+        sum(sr_return_quantity) sr_item_qty
+ from store_returns,
+      item,
+      date_dim
+ where sr_item_sk = i_item_sk
+ and   d_date    in 
+	(select d_date
+	from date_dim
+	where d_week_seq in 
+		(select d_week_seq
+		from date_dim
+	  where d_date in ('1998-01-02','1998-10-15','1998-11-10')))
+ and   sr_returned_date_sk   = d_date_sk
+ group by i_item_id),
+ cr_items as
+ (select i_item_id item_id,
+        sum(cr_return_quantity) cr_item_qty
+ from catalog_returns,
+      item,
+      date_dim
+ where cr_item_sk = i_item_sk
+ and   d_date    in 
+	(select d_date
+	from date_dim
+	where d_week_seq in 
+		(select d_week_seq
+		from date_dim
+	  where d_date in ('1998-01-02','1998-10-15','1998-11-10')))
+ and   cr_returned_date_sk   = d_date_sk
+ group by i_item_id),
+ wr_items as
+ (select i_item_id item_id,
+        sum(wr_return_quantity) wr_item_qty
+ from web_returns,
+      item,
+      date_dim
+ where wr_item_sk = i_item_sk
+ and   d_date    in 
+	(select d_date
+	from date_dim
+	where d_week_seq in 
+		(select d_week_seq
+		from date_dim
+		where d_date in ('1998-01-02','1998-10-15','1998-11-10')))
+ and   wr_returned_date_sk   = d_date_sk
+ group by i_item_id)
+  select  sr_items.item_id
+       ,sr_item_qty
+       ,sr_item_qty/(sr_item_qty+cr_item_qty+wr_item_qty)/3.0 * 100 sr_dev
+       ,cr_item_qty
+       ,cr_item_qty/(sr_item_qty+cr_item_qty+wr_item_qty)/3.0 * 100 cr_dev
+       ,wr_item_qty
+       ,wr_item_qty/(sr_item_qty+cr_item_qty+wr_item_qty)/3.0 * 100 wr_dev
+       ,(sr_item_qty+cr_item_qty+wr_item_qty)/3.0 average
+ from sr_items
+     ,cr_items
+     ,wr_items
+ where sr_items.item_id=cr_items.item_id
+   and sr_items.item_id=wr_items.item_id 
+ order by sr_items.item_id
+         ,sr_item_qty
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query84 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" customer (window 1), customer_address (window 1), customer_demographics (window 1), household_demographics (window 1), income_band (window 1), store_returns (window 1) " ioTime="3" output=" Query84 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  c_customer_id as customer_id
+       ,c_last_name || ', ' || c_first_name as customername
+ from customer
+     ,customer_address
+     ,customer_demographics
+     ,household_demographics
+     ,income_band
+     ,store_returns
+ where ca_city	        =  'Hopewell'
+   and c_current_addr_sk = ca_address_sk
+   and ib_lower_bound   >=  32287
+   and ib_upper_bound   <=  32287 + 50000
+   and ib_income_band_sk = hd_income_band_sk
+   and cd_demo_sk = c_current_cdemo_sk
+   and hd_demo_sk = c_current_hdemo_sk
+   and sr_cdemo_sk = cd_demo_sk
+ order by c_customer_id
+ limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query87 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), customer (window 1), date_dim (window 1), store_sales (window 1), web_sales (window 1) " ioTime="3" output=" Query87 (window 1) ">
+                        <query>
+<![CDATA[
+
+select count(*) 
+from ((select distinct c_last_name, c_first_name, d_date
+       from store_sales, date_dim, customer
+       where store_sales.ss_sold_date_sk = date_dim.d_date_sk
+         and store_sales.ss_customer_sk = customer.c_customer_sk
+         and d_month_seq between 1176 and 1176+11)
+       except
+      (select distinct c_last_name, c_first_name, d_date
+       from catalog_sales, date_dim, customer
+       where catalog_sales.cs_sold_date_sk = date_dim.d_date_sk
+         and catalog_sales.cs_bill_customer_sk = customer.c_customer_sk
+         and d_month_seq between 1176 and 1176+11)
+       except
+      (select distinct c_last_name, c_first_name, d_date
+       from web_sales, date_dim, customer
+       where web_sales.ws_sold_date_sk = date_dim.d_date_sk
+         and web_sales.ws_bill_customer_sk = customer.c_customer_sk
+         and d_month_seq between 1176 and 1176+11)
+) cool_cust
+;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query88 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" household_demographics (window 1), store (window 1), store_sales (window 1), time_dim (window 1) " ioTime="3" output=" Query88 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  *
+from
+ (select count(*) h8_30_to_9
+ from store_sales, household_demographics , time_dim, store
+ where ss_sold_time_sk = time_dim.t_time_sk   
+     and ss_hdemo_sk = household_demographics.hd_demo_sk 
+     and ss_store_sk = s_store_sk
+     and time_dim.t_hour = 8
+     and time_dim.t_minute >= 30
+     and ((household_demographics.hd_dep_count = 3 and household_demographics.hd_vehicle_count<=3+2) or
+          (household_demographics.hd_dep_count = 0 and household_demographics.hd_vehicle_count<=0+2) or
+          (household_demographics.hd_dep_count = 1 and household_demographics.hd_vehicle_count<=1+2)) 
+     and store.s_store_name = 'ese') s1,
+ (select count(*) h9_to_9_30 
+ from store_sales, household_demographics , time_dim, store
+ where ss_sold_time_sk = time_dim.t_time_sk
+     and ss_hdemo_sk = household_demographics.hd_demo_sk
+     and ss_store_sk = s_store_sk 
+     and time_dim.t_hour = 9 
+     and time_dim.t_minute < 30
+     and ((household_demographics.hd_dep_count = 3 and household_demographics.hd_vehicle_count<=3+2) or
+          (household_demographics.hd_dep_count = 0 and household_demographics.hd_vehicle_count<=0+2) or
+          (household_demographics.hd_dep_count = 1 and household_demographics.hd_vehicle_count<=1+2))
+     and store.s_store_name = 'ese') s2,
+ (select count(*) h9_30_to_10 
+ from store_sales, household_demographics , time_dim, store
+ where ss_sold_time_sk = time_dim.t_time_sk
+     and ss_hdemo_sk = household_demographics.hd_demo_sk
+     and ss_store_sk = s_store_sk
+     and time_dim.t_hour = 9
+     and time_dim.t_minute >= 30
+     and ((household_demographics.hd_dep_count = 3 and household_demographics.hd_vehicle_count<=3+2) or
+          (household_demographics.hd_dep_count = 0 and household_demographics.hd_vehicle_count<=0+2) or
+          (household_demographics.hd_dep_count = 1 and household_demographics.hd_vehicle_count<=1+2))
+     and store.s_store_name = 'ese') s3,
+ (select count(*) h10_to_10_30
+ from store_sales, household_demographics , time_dim, store
+ where ss_sold_time_sk = time_dim.t_time_sk
+     and ss_hdemo_sk = household_demographics.hd_demo_sk
+     and ss_store_sk = s_store_sk
+     and time_dim.t_hour = 10 
+     and time_dim.t_minute < 30
+     and ((household_demographics.hd_dep_count = 3 and household_demographics.hd_vehicle_count<=3+2) or
+          (household_demographics.hd_dep_count = 0 and household_demographics.hd_vehicle_count<=0+2) or
+          (household_demographics.hd_dep_count = 1 and household_demographics.hd_vehicle_count<=1+2))
+     and store.s_store_name = 'ese') s4,
+ (select count(*) h10_30_to_11
+ from store_sales, household_demographics , time_dim, store
+ where ss_sold_time_sk = time_dim.t_time_sk
+     and ss_hdemo_sk = household_demographics.hd_demo_sk
+     and ss_store_sk = s_store_sk
+     and time_dim.t_hour = 10 
+     and time_dim.t_minute >= 30
+     and ((household_demographics.hd_dep_count = 3 and household_demographics.hd_vehicle_count<=3+2) or
+          (household_demographics.hd_dep_count = 0 and household_demographics.hd_vehicle_count<=0+2) or
+          (household_demographics.hd_dep_count = 1 and household_demographics.hd_vehicle_count<=1+2))
+     and store.s_store_name = 'ese') s5,
+ (select count(*) h11_to_11_30
+ from store_sales, household_demographics , time_dim, store
+ where ss_sold_time_sk = time_dim.t_time_sk
+     and ss_hdemo_sk = household_demographics.hd_demo_sk
+     and ss_store_sk = s_store_sk 
+     and time_dim.t_hour = 11
+     and time_dim.t_minute < 30
+     and ((household_demographics.hd_dep_count = 3 and household_demographics.hd_vehicle_count<=3+2) or
+          (household_demographics.hd_dep_count = 0 and household_demographics.hd_vehicle_count<=0+2) or
+          (household_demographics.hd_dep_count = 1 and household_demographics.hd_vehicle_count<=1+2))
+     and store.s_store_name = 'ese') s6,
+ (select count(*) h11_30_to_12
+ from store_sales, household_demographics , time_dim, store
+ where ss_sold_time_sk = time_dim.t_time_sk
+     and ss_hdemo_sk = household_demographics.hd_demo_sk
+     and ss_store_sk = s_store_sk
+     and time_dim.t_hour = 11
+     and time_dim.t_minute >= 30
+     and ((household_demographics.hd_dep_count = 3 and household_demographics.hd_vehicle_count<=3+2) or
+          (household_demographics.hd_dep_count = 0 and household_demographics.hd_vehicle_count<=0+2) or
+          (household_demographics.hd_dep_count = 1 and household_demographics.hd_vehicle_count<=1+2))
+     and store.s_store_name = 'ese') s7,
+ (select count(*) h12_to_12_30
+ from store_sales, household_demographics , time_dim, store
+ where ss_sold_time_sk = time_dim.t_time_sk
+     and ss_hdemo_sk = household_demographics.hd_demo_sk
+     and ss_store_sk = s_store_sk
+     and time_dim.t_hour = 12
+     and time_dim.t_minute < 30
+     and ((household_demographics.hd_dep_count = 3 and household_demographics.hd_vehicle_count<=3+2) or
+          (household_demographics.hd_dep_count = 0 and household_demographics.hd_vehicle_count<=0+2) or
+          (household_demographics.hd_dep_count = 1 and household_demographics.hd_vehicle_count<=1+2))
+     and store.s_store_name = 'ese') s8
+;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query89 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" date_dim (window 1), item (window 1), store (window 1), store_sales (window 1) " ioTime="3" output=" Query89 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  *
+from(
+select i_category, i_class, i_brand,
+       s_store_name, s_company_name,
+       d_moy,
+       sum(ss_sales_price) sum_sales,
+       avg(sum(ss_sales_price)) over
+         (partition by i_category, i_brand, s_store_name, s_company_name)
+         avg_monthly_sales
+from item, store_sales, date_dim, store
+where ss_item_sk = i_item_sk and
+      ss_sold_date_sk = d_date_sk and
+      ss_store_sk = s_store_sk and
+      d_year in (2000) and
+        ((i_category in ('Home','Books','Electronics') and
+          i_class in ('wallpaper','parenting','musical')
+         )
+      or (i_category in ('Shoes','Jewelry','Men') and
+          i_class in ('womens','birdal','pants') 
+        ))
+group by i_category, i_class, i_brand,
+         s_store_name, s_company_name, d_moy) tmp1
+where case when (avg_monthly_sales <> 0) then (abs(sum_sales - avg_monthly_sales) / avg_monthly_sales) else null end > 0.1
+order by sum_sales - avg_monthly_sales, s_store_name
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query91 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" call_center (window 1), catalog_returns (window 1), customer (window 1), customer_address (window 1), customer_demographics (window 1), date_dim (window 1), household_demographics (window 1) " ioTime="3" output=" Query91 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  
+        cc_call_center_id Call_Center,
+        cc_name Call_Center_Name,
+        cc_manager Manager,
+        sum(cr_net_loss) Returns_Loss
+from
+        call_center,
+        catalog_returns,
+        date_dim,
+        customer,
+        customer_address,
+        customer_demographics,
+        household_demographics
+where
+        cr_call_center_sk       = cc_call_center_sk
+and     cr_returned_date_sk     = d_date_sk
+and     cr_returning_customer_sk= c_customer_sk
+and     cd_demo_sk              = c_current_cdemo_sk
+and     hd_demo_sk              = c_current_hdemo_sk
+and     ca_address_sk           = c_current_addr_sk
+and     d_year                  = 1999 
+and     d_moy                   = 11
+and     ( (cd_marital_status       = 'M' and cd_education_status     = 'Unknown')
+        or(cd_marital_status       = 'W' and cd_education_status     = 'Advanced Degree'))
+and     hd_buy_potential like '0-500%'
+and     ca_gmt_offset           = -7
+group by cc_call_center_id,cc_name,cc_manager,cd_marital_status,cd_education_status
+order by sum(cr_net_loss) desc;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query93 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" customer (window 1), item (window 1), reason (window 1), store_returns (window 1), store_sales (window 1) " ioTime="3" output=" Query93 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  ss_customer_sk
+            ,sum(act_sales) sumsales
+      from (select ss_item_sk
+                  ,ss_ticket_number
+                  ,ss_customer_sk
+                  ,case when sr_return_quantity is not null then (ss_quantity-sr_return_quantity)*ss_sales_price
+                                                            else (ss_quantity*ss_sales_price) end act_sales
+            from store_sales left outer join store_returns on (sr_item_sk = ss_item_sk
+                                                               and sr_ticket_number = ss_ticket_number)
+                ,reason
+            where sr_reason_sk = r_reason_sk
+              and r_reason_desc = 'Did not like the warranty') t
+      group by ss_customer_sk
+      order by sumsales, ss_customer_sk
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query96 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" household_demographics (window 1), store (window 1), store_sales (window 1), time_dim (window 1) " ioTime="3" output=" Query96 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  count(*) 
+from store_sales
+    ,household_demographics 
+    ,time_dim, store
+where ss_sold_time_sk = time_dim.t_time_sk   
+    and ss_hdemo_sk = household_demographics.hd_demo_sk 
+    and ss_store_sk = s_store_sk
+    and time_dim.t_hour = 8
+    and time_dim.t_minute >= 30
+    and household_demographics.hd_dep_count = 5
+    and store.s_store_name = 'ese'
+order by count(*)
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query97 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" catalog_sales (window 1), customer (window 1), date_dim (window 1), item (window 1), store (window 1), store_sales (window 1) " ioTime="3" output=" Query97 (window 1) ">
+                        <query>
+<![CDATA[
+
+with ssci as (
+select ss_customer_sk customer_sk
+      ,ss_item_sk item_sk
+from store_sales,date_dim
+where ss_sold_date_sk = d_date_sk
+  and d_month_seq between 1176 and 1176 + 11
+group by ss_customer_sk
+        ,ss_item_sk),
+csci as(
+ select cs_bill_customer_sk customer_sk
+      ,cs_item_sk item_sk
+from catalog_sales,date_dim
+where cs_sold_date_sk = d_date_sk
+  and d_month_seq between 1176 and 1176 + 11
+group by cs_bill_customer_sk
+        ,cs_item_sk)
+ select  sum(case when ssci.customer_sk is not null and csci.customer_sk is null then 1 else 0 end) store_only
+      ,sum(case when ssci.customer_sk is null and csci.customer_sk is not null then 1 else 0 end) catalog_only
+      ,sum(case when ssci.customer_sk is not null and csci.customer_sk is not null then 1 else 0 end) store_and_catalog
+from ssci full outer join csci on (ssci.customer_sk=csci.customer_sk
+                               and ssci.item_sk = csci.item_sk)
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query98 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" date_dim (window 1), item (window 1), store_sales (window 1) " ioTime="3" output=" Query98 (window 1) ">
+                        <query>
+<![CDATA[
+
+select i_item_desc 
+      ,i_category 
+      ,i_class 
+      ,i_current_price
+      ,sum(ss_ext_sales_price) as itemrevenue 
+      ,sum(ss_ext_sales_price)*100/sum(sum(ss_ext_sales_price)) over
+          (partition by i_class) as revenueratio
+from	
+	store_sales
+    	,item 
+    	,date_dim
+where 
+	ss_item_sk = i_item_sk 
+  	and i_category in ('Jewelry', 'Sports', 'Books')
+  	and ss_sold_date_sk = d_date_sk
+	and d_date between cast('2001-01-12' as date) 
+				and (cast('2001-01-12' as date) + 30)
+group by 
+	i_item_id
+        ,i_item_desc 
+        ,i_category
+        ,i_class
+        ,i_current_price
+order by 
+	i_category
+        ,i_class
+        ,i_item_id
+        ,i_item_desc
+        ,revenueratio;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query99 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" call_center (window 1), catalog_sales (window 1), date_dim (window 1), ship_mode (window 1), warehouse (window 1) " ioTime="3" output=" Query99 (window 1) ">
+                        <query>
+<![CDATA[
+
+select  
+   substr(w_warehouse_name,1,20)
+  ,sm_type
+  ,cc_name
+  ,sum(case when (cs_ship_date_sk - cs_sold_date_sk <= 30 ) then 1 else 0 end)  as "30 days" 
+  ,sum(case when (cs_ship_date_sk - cs_sold_date_sk > 30) and 
+                 (cs_ship_date_sk - cs_sold_date_sk <= 60) then 1 else 0 end )  as "31-60 days" 
+  ,sum(case when (cs_ship_date_sk - cs_sold_date_sk > 60) and 
+                 (cs_ship_date_sk - cs_sold_date_sk <= 90) then 1 else 0 end)  as "61-90 days" 
+  ,sum(case when (cs_ship_date_sk - cs_sold_date_sk > 90) and
+                 (cs_ship_date_sk - cs_sold_date_sk <= 120) then 1 else 0 end)  as "91-120 days" 
+  ,sum(case when (cs_ship_date_sk - cs_sold_date_sk  > 120) then 1 else 0 end)  as ">120 days" 
+from
+   catalog_sales
+  ,warehouse
+  ,ship_mode
+  ,call_center
+  ,date_dim
+where
+    d_month_seq between 1200 and 1200 + 11
+and cs_ship_date_sk   = d_date_sk
+and cs_warehouse_sk   = w_warehouse_sk
+and cs_ship_mode_sk   = sm_ship_mode_sk
+and cs_call_center_sk = cc_call_center_sk
+group by
+   substr(w_warehouse_name,1,20)
+  ,sm_type
+  ,cc_name
+order by substr(w_warehouse_name,1,20)
+        ,sm_type
+        ,cc_name
+limit 100;
+
+
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module>
+		<module exec="./viewgen" name=" Query9 ">
+<config partitionSchema="view0">
+        <scheduler ip="localhost" port="5323"/>
+        <dbs dbname="dbstream" host="localhost" password="FT4hhyhL" port="5440" user="dbstream"/>
+        <jobs>
+                <job description="Query , exec_time  sec" inputs=" reason (window 1), store_sales (window 1) " ioTime="3" output=" Query9 (window 1) ">
+                        <query>
+<![CDATA[
+select case when (select count(*) 
+                  from store_sales 
+                  where ss_quantity between 1 and 20) > 25437
+            then (select avg(ss_ext_discount_amt) 
+                  from store_sales 
+                  where ss_quantity between 1 and 20) 
+            else (select avg(ss_net_profit)
+                  from store_sales
+                  where ss_quantity between 1 and 20) end bucket1 ,
+       case when (select count(*)
+                  from store_sales
+                  where ss_quantity between 21 and 40) > 22746
+            then (select avg(ss_ext_discount_amt)
+                  from store_sales
+                  where ss_quantity between 21 and 40) 
+            else (select avg(ss_net_profit)
+                  from store_sales
+                  where ss_quantity between 21 and 40) end bucket2,
+       case when (select count(*)
+                  from store_sales
+                  where ss_quantity between 41 and 60) > 9387
+            then (select avg(ss_ext_discount_amt)
+                  from store_sales
+                  where ss_quantity between 41 and 60)
+            else (select avg(ss_net_profit)
+                  from store_sales
+                  where ss_quantity between 41 and 60) end bucket3,
+       case when (select count(*)
+                  from store_sales
+                  where ss_quantity between 61 and 80) > 10098
+            then (select avg(ss_ext_discount_amt)
+                  from store_sales
+                  where ss_quantity between 61 and 80)
+            else (select avg(ss_net_profit)
+                  from store_sales
+                  where ss_quantity between 61 and 80) end bucket4,
+       case when (select count(*)
+                  from store_sales
+                  where ss_quantity between 81 and 100) > 18213
+            then (select avg(ss_ext_discount_amt)
+                  from store_sales
+                  where ss_quantity between 81 and 100)
+            else (select avg(ss_net_profit)
+                  from store_sales
+                  where ss_quantity between 81 and 100) end bucket5
+from reason
+where r_reason_sk = 1;
+]]>
+</query>
+</job>
+        </jobs>
+</config>
+</module></modules>
+	</config>

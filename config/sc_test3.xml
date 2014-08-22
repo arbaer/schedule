@@ -1,0 +1,43 @@
+<config ip="localhost" port="5322" restartPenalty="5">
+	<modules>
+		<module name="ImportLogTCPComplete" exec="./externalImport">
+			<config checkInterval="5">
+				<tables>
+					<table name="a"/>
+					<table name="e"/>
+					<table name="a1"/>
+					<table name="e1"/>
+				</tables>
+			</config>
+		</module>
+		<module name="log_video_view" exec="./viewgen">
+			<config checkInterval="5">
+				<jobs>
+					<job inputs="a (window 1)" output="b (window 1)" />
+					<job inputs="b (window 1)" output="i (window 1)" />
+					<job inputs="b (window 1)" output="j (window 1)" />
+					<job inputs="b (window 1)" output="k (window 1)" />
+
+					<job inputs="a (window 1), e (window 1)" output="c (window 1)" />
+					<job inputs="c (window 1)" output="d (window 1)" />
+					<job inputs="d (window 1)" output="f (window 1)" />
+					<job inputs="d (window 1)" output="g (window 1)" />
+					<job inputs="d (window 1)" output="h (window 1)" />
+
+					<job inputs="a1 (window 1)" output="b1 (window 1)" />
+					<job inputs="b1 (window 1)" output="i1 (window 1)" />
+					<job inputs="b1 (window 1)" output="j1 (window 1)" />
+					<job inputs="b1 (window 1)" output="k1 (window 1)" />
+
+					<job inputs="a1 (window 1), e1 (window 1), c (window 1)" output="c1 (window 1)" />
+
+					<job inputs="c1 (window 1)" output="d1 (window 1)" />
+					<job inputs="d1 (window 1)" output="f1 (window 1)" />
+					<job inputs="d1 (window 1)" output="g1 (window 1)" />
+					<job inputs="d1 (window 1)" output="h1 (window 1)" />
+				</jobs>
+			</config>
+		</module>
+	</modules>
+</config>
+
