@@ -38,7 +38,7 @@ The tool *schedule* can be used to generate schedules of a given configuration. 
 
 There are four algorithms:
 
-*baseline: Schedules the jobs in a breadth first like way.
-*greedy: Tries to  always optimize the next step according to the total maximum bandwith costs.
-*heuristic: Uses several heuristics to find a suitable schedule.
-*a_star: Uses the A\* algorithm to find the optimal schedule. Please be aware that this algorithm might consume a lot of RAM and to complete.
+* baseline: Schedules the jobs in a breadth first like way.
+* greedy: Tries to  always optimize the next step according to the total maximum bandwith costs.
+* heuristic: Uses several heuristics to find a suitable schedule.
+* a_star: Uses the A\* algorithm to find the optimal schedule. Please be aware that this algorithm might consume a lot of RAM and to complete.
