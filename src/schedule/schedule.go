@@ -1,9 +1,7 @@
 package main
 
 import (
-	"algo"
 	"encoding/xml"
-	"eval"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -12,7 +10,10 @@ import (
 	"os"
 	"strings"
 	"time"
+
 	"types"
+	"eval"
+	"algo"
 )
 
 type JobDefinition struct {
@@ -84,11 +85,11 @@ func jobDef2node(jd JobDefinition) (jout types.JobNode) {
 	inputs := csvToSlice(jd.Inputs)
 	jout.Inputs = make([]string, len(inputs))
 	for i, inp := range inputs {
-		wnd := utils.IOWindowFromString(inp)
+		wnd := types.IOWindowFromString(inp)
 		jout.Inputs[i] = wnd.Name
 	}
 
-	jout.Name = utils.IOWindowFromString(jd.Output).Name
+	jout.Name = types.IOWindowFromString(jd.Output).Name
 
 	jout.CpuTime = jd.CPUTime
 	if jout.CpuTime == 0.0 {
