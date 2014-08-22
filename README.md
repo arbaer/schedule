@@ -10,11 +10,15 @@ First you have to install the Go language (http://golang.org). In Ubuntu this ca
 
 ```apt-get install golang```
 
+In order to compile the code with go you have to set GOPATH enviroment variable e.g. like this:
+
+```export GOPATH=$GOPATH:/path_to_the_repo/schedule ```
+
 ## Build
 
 Just run the command:
 
-```./build.sh```
+``` ./build.sh ```
 
 to build the programs.
 
