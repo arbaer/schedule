@@ -42,3 +42,9 @@ There are four algorithms:
 * greedy: Tries to  always optimize the next step according to the total maximum bandwith costs.
 * heuristic: Uses several heuristics to find a suitable schedule.
 * a_star: Uses the A\* algorithm to find the optimal schedule. Please be aware that this algorithm might consume a lot of RAM and to complete.
+
+To create a schedule for your workload, just run the following command:
+
+```./schedule --config config/running.xml --algo greedy```
+
+If your configuration also contains sizes you can use the *--size* option to utilize them also for the executeion of the algorithm.
