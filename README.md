@@ -24,4 +24,21 @@ to build the programs.
 
 ## Graph Visualization
 
-The tool *conf2gv* can be used to generate GraphVis files for given configurations.
+The tool *conf2gv* can be used to generate GraphVis (http://www.graphviz.org) files for given configurations. With
+
+```./conf2gv --config config/running.xml --style name_id > running.gv```
+
+you can create a gv file, which can then be transformed into your prefered image format using the *dot* commandline tool.
+
+```dot -Tsvg running.gv > running.svg```
+
+## Scheduling
+
+The tool *schedule* can be used to generate schedules of a given configuration. Those schedules will full-fill all precedence constraints and, depending on the algorithm you choose, will be optimized for cache usage.
+
+There are four algorithms:
+
+*baseline: Schedules the jobs in a breadth first like way.
+*greedy: Tries to  always optimize the next step according to the total maximum bandwith costs.
+*heuristic: Uses several heuristics to find a suitable schedule.
+*a_star: Uses the A\* algorithm to find the optimal schedule. Please be aware that this algorithm might consume a lot of RAM and to complete.
