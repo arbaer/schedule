@@ -6,7 +6,6 @@ import (
 	"eval"
 	"flag"
 	"fmt"
-	"ftw.at/dbstream/server/utils"
 	"io/ioutil"
 	"log"
 	"math/rand"
