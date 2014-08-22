@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
-	"ftw.at/dbstream/server/utils"
+	"types"
 )
 
 type JobDefinition struct {
@@ -74,10 +74,10 @@ func jobDef2node(jd JobDefinition) (jout jobNode) {
 	inputs := csvToSlice(jd.Inputs)
 	jout.inputs = make([]string, len(inputs))
 	for i, inp := range inputs {
-		jout.inputs[i] = utils.IOWindowFromString(inp).Name
+		jout.inputs[i] = types.IOWindowFromString(inp).Name
 	}
 
-	jout.name = utils.IOWindowFromString(jd.Output).Name
+	jout.name = types.IOWindowFromString(jd.Output).Name
 	return jout
 }
 
